@@ -14,13 +14,15 @@ class Gateway
     private DeviceRegistry $deviceRegistry;
     private $group;
     private $port;
+    private $response_port;
     
     public function __construct()
     {
         $this->loop = Loop::get();
         $this->deviceRegistry = new DeviceRegistry();
-        $this->group = getenv('MULTICAST_GROUP');
-        $this->port = (int)getenv('MULTICAST_PORT');
+        $this->group = $_ENV['MULTICAST_GROUP'];
+        $this->port = $_ENV['MULTICAST_PORT'];
+        $this->response_port = $_ENV['RESPONSE_PORT'];
     }
 
     public function start(): void
@@ -41,7 +43,7 @@ class Gateway
     {
         $this->loop->addPeriodicTimer(5, function () {
             echo "[DISCOVERY] Broadcast multicast...\n";
-            MulticastDiscovery::send($this->group, $this->port, "DISCOVERY");
+            BroadcastDiscovery::send("$this->group", $this->port, "DISCOVERY");
         });
     }
 
@@ -49,21 +51,25 @@ class Gateway
     {
         $factory = new Factory($this->loop);
 
-        $factory->createServer("0.0.0.0:" . $this->port)->then(function ($server) {
-
-            $server->joinGroup($this->group);
+        $factory->createServer("0.0.0.0:$this->response_port" . $this->port)->then(function ($server) {
 
             echo "[DISCOVERY] Aguardando respostas dos dispositivos...\n";
 
             $server->on('message', function ($msg, $addr) {
 
-                echo "[DISCOVERY] Resposta recebida de $addr\n";
+                echo "[DISCOVERY] Resposta recebida de $addr - $msg \n";
 
-                list($ip, $port) = explode(":", $addr);
-
+                if ($msg === "DISCOVERY") {
+                    return;
+                }
+                
                 // Decodifica Protobuf
-                $info = new DeviceInfo();
-                $info->mergeFromString($msg);
+                try {
+                    $info = new DeviceInfo();
+                    $info->mergeFromString($msg);
+                } catch (\Exception $e) {
+                    return;
+                }
 
                 $device = new Device(
                     name: $info->getName(),
@@ -90,7 +96,6 @@ class Gateway
 
             $server->on('message', function($msg, $addr) {
                 echo "[UDP] Mensagem recebida de $addr → $msg\n";
-                //list($ip, ) = explode(":", $addr);
                 $info = new SensorData();
                 $info->mergeFromString($msg);
                 
