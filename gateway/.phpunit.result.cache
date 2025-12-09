@@ -1,0 +1,1 @@
+{"version":1,"defects":{"GatewayTest::testDeviceDiscoveryResponseIsRegistered":4,"GatewayTest::testSensorDataUpdatesDevice":4},"times":{"GatewayTest::testDeviceDiscoveryResponseIsRegistered":0.003,"GatewayTest::testSensorDataUpdatesDevice":0,"GatewayTest::testPeriodicDiscoverySendsPacket":0}}

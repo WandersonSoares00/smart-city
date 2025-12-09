@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+message DiscoveryRequest {
+}
+
+message DeviceInfo {
+  string name = 1;
+  string type = 2;
+  string ip = 3;
+  uint32 port = 4;
+  string currentState = 5;
+}
+
+message SensorData {
+  string deviceName = 1;
+  string type = 2;
+  string value = 3;
+}
+
+message Command {
+  string device_id = 1;
+  string action = 2;
+}
+
+message CommandResponse {
+  string status = 1;
+  string message = 2;
+}
+
+message DeviceList {
+  repeated DeviceInfo devices = 1;
+}
