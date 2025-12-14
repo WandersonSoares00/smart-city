@@ -99,11 +99,16 @@ class Gateway
             echo "[UDP] Escutando sensores na porta {$_ENV["SENSOR_UDP_PORT"]}\n";
 
             $server->on('message', function($msg, $addr) {
-                echo "[UDP] Mensagem recebida de $addr → $msg\n";
-                $info = new SensorData();
-                $info->mergeFromString($msg);
+                echo "[UDP] Mensagem recebida de $addr → " . strlen($msg) . " bytes\n";
                 
-                $this->deviceRegistry->updateSensorData($info->getDeviceName(), $info->getType(), $info->getValue());
+                try {
+                    $info = new SensorData();
+                    $info->mergeFromString($msg);
+                    
+                    $this->deviceRegistry->updateSensorData($info->getDeviceName(), $info->getType(), $info->getValue());
+                } catch (\Exception $e) {
+                    echo "[ERROR] Falha ao processar mensagem UDP: " . $e->getMessage() . "\n";
+                }
             });
         });
     }
@@ -164,8 +169,43 @@ class Gateway
 
                 $parts = explode(" ", $cmd);
 
-                // SET LIGHT <device> <red|yellow|green> p/ semaforo e sensor de temperatura
+                // Comandos genéricos: CMD <device> <action> [value]
+                // Exemplos:
+                // CMD Poste-Rua-1 TURN_ON
+                // CMD Poste-Rua-1 SET_BRIGHTNESS 80
+                // CMD Semaforo-Centro SET_MODE AUTO
+                // CMD Camera-Praca SET_RESOLUTION 4K
+                // CMD Temp-Centro SET_INTERVAL 30
 
+                if (count($parts) >= 3 && $parts[0] === "CMD") {
+                    $deviceName = $parts[1];
+                    $action = $parts[2];
+                    $value = $parts[3] ?? "";
+
+                    $device = $this->deviceRegistry->getDevice($deviceName);
+
+                    if (!$device) {
+                        $conn->write("ERROR: device '$deviceName' not found.\n");
+                        return;
+                    }
+
+                    $command = new Command();
+                    $command->setDeviceName($deviceName);
+                    $command->setAction($action);
+                    $command->setValue($value);
+
+                    $this->sendCommandToDevice($device, $command, function (CommandResponse $resp) use ($conn) {
+                        $conn->write(json_encode([
+                            "device"  => $resp->getDeviceName(),
+                            "success" => $resp->getSuccess(),
+                            "message" => $resp->getMessage()
+                        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . "\n");
+                    });
+
+                    return;
+                }
+
+                // SET LIGHT <device> <red|yellow|green> - mantido para compatibilidade
                 if (count($parts) >= 4 && $parts[0] === "SET" && $parts[1] === "LIGHT") {
 
                     $deviceName = $parts[2];
@@ -194,7 +234,50 @@ class Gateway
                     return;
                 }
 
-                $conn->write("Comando inválido\n");            });
+                // Comando HELP - lista comandos disponíveis
+                if ($cmd === "HELP") {
+                    $help = <<<HELP
+╔═══════════════════════════════════════════════════════════════════╗
+║                    COMANDOS DISPONÍVEIS                           ║
+╠═══════════════════════════════════════════════════════════════════╣
+║ LIST                           - Lista todos os dispositivos      ║
+║ CMD <device> <action> [value]  - Envia comando para dispositivo   ║
+║ SET LIGHT <device> <color>     - Define cor do semáforo           ║
+║ HELP                           - Mostra esta ajuda                ║
+╠═══════════════════════════════════════════════════════════════════╣
+║                    EXEMPLOS DE COMANDOS                           ║
+╠═══════════════════════════════════════════════════════════════════╣
+║ POSTE:                                                            ║
+║   CMD Poste-Rua-1 TURN_ON                                         ║
+║   CMD Poste-Rua-1 TURN_OFF                                        ║
+║   CMD Poste-Rua-1 SET_BRIGHTNESS 80                               ║
+║   CMD Poste-Rua-1 SET_MODE AUTO                                   ║
+╠═══════════════════════════════════════════════════════════════════╣
+║ SEMÁFORO:                                                         ║
+║   CMD Semaforo-Centro SET_MODE AUTO                               ║
+║   CMD Semaforo-Centro SET_MODE MANUAL                             ║
+║   CMD Semaforo-Centro SET_LIGHT RED                               ║
+║   CMD Semaforo-Centro SET_TIME RED:20                             ║
+╠═══════════════════════════════════════════════════════════════════╣
+║ CÂMERA:                                                           ║
+║   CMD Camera-Praca TURN_ON                                        ║
+║   CMD Camera-Praca SET_RESOLUTION 4K                              ║
+║   CMD Camera-Praca SET_FPS 60                                     ║
+║   CMD Camera-Praca SET_PTZ 90:45:2                                ║
+║   CMD Camera-Praca SET_NIGHT_VISION ON                            ║
+╠═══════════════════════════════════════════════════════════════════╣
+║ SENSORES:                                                         ║
+║   CMD Temp-Centro GET_READING                                     ║
+║   CMD Temp-Centro SET_INTERVAL 30                                 ║
+║   CMD AirQuality-Centro GET_DETAILED                              ║
+║   CMD Noise-Centro SET_ALERT_THRESHOLD 80                         ║
+╚═══════════════════════════════════════════════════════════════════╝
+HELP;
+                    $conn->write($help . "\n");
+                    return;
+                }
+
+                $conn->write("Comando inválido. Digite HELP para ver comandos disponíveis.\n");            });
         });
     }
 }

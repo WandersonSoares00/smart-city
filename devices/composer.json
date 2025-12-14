@@ -1,0 +1,26 @@
+{
+    "name": "smart-city/devices",
+    "description": "Dispositivos simulados para cidade inteligente",
+    "type": "project",
+    "require": {
+        "php": ">=8.0",
+        "vlucas/phpdotenv": "^5.6",
+        "react/event-loop": "^1.6",
+        "react/socket": "^1.17",
+        "react/datagram": "^1.10",
+        "google/protobuf": "^4.33"
+    },
+    "autoload": {
+        "psr-4": {
+            "Devices\\": "src/"
+        },
+        "classmap": [
+            "../gateway/src/protobuf/"
+        ]
+    },
+    "scripts": {
+        "traffic-light": "php bin/run-traffic-light.php",
+        "camera": "php bin/run-camera.php",
+        "temperature": "php bin/run-temperature-sensor.php"
+    }
+}

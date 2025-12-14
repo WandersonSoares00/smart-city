@@ -1,0 +1,159 @@
+<?php
+
+namespace Devices;
+
+use React\EventLoop\Loop;
+use React\EventLoop\LoopInterface;
+use React\Datagram\Factory;
+use React\Socket\SocketServer;
+use DeviceInfo;
+use Command;
+use CommandResponse;
+
+/**
+ * Classe base para todos os dispositivos da cidade inteligente.
+ * 
+ * Responsabilidades:
+ * - Descoberta via multicast UDP
+ * - Servidor TCP para receber comandos
+ * - Envio de informações do dispositivo
+ */
+abstract class BaseDevice
+{
+    protected LoopInterface $loop;
+    protected string $name;
+    protected string $type;
+    protected string $ip;
+    protected int $port;
+    protected string $currentState;
+
+    protected string $multicastGroup;
+    protected int $multicastPort;
+    protected int $gatewayResponsePort;
+
+    public function __construct(string $name, string $type, int $port, string $initialState = 'OFF')
+    {
+        $this->loop = Loop::get();
+        $this->name = $name;
+        $this->type = $type;
+        $this->ip = $this->getLocalIp();
+        $this->port = $port;
+        $this->currentState = $initialState;
+
+        $this->multicastGroup = $_ENV['MULTICAST_GROUP'] ?? '239.0.0.1';
+        $this->multicastPort = (int) ($_ENV['MULTICAST_PORT'] ?? 5000);
+        $this->gatewayResponsePort = (int) ($_ENV['RESPONSE_PORT'] ?? 5000);
+    }
+
+    /**
+     * Obtém o IP local da máquina
+     */
+    protected function getLocalIp(): string
+    {
+        return gethostbyname(gethostname()) ?: '127.0.0.1';
+    }
+
+    /**
+     * Inicia o dispositivo
+     */
+    public function start(): void
+    {
+        echo "[{$this->type}] Iniciando {$this->name} em {$this->ip}:{$this->port}\n";
+
+        $this->listenForDiscovery();
+        $this->startTcpServer();
+        $this->onStart();
+
+        echo "[{$this->type}] ✓ Aguardando comandos...\n\n";
+
+        $this->loop->run();
+    }
+
+    /**
+     * Hook para ações específicas ao iniciar
+     */
+    protected function onStart(): void
+    {
+        // Pode ser sobrescrito pelas classes filhas
+    }
+
+    /**
+     * Escuta mensagens de descoberta multicast do Gateway
+     */
+    protected function listenForDiscovery(): void
+    {
+        $factory = new Factory($this->loop);
+
+        $factory->createServer("0.0.0.0:{$this->multicastPort}")->then(function ($server) {
+            $server->on('message', function ($msg, $addr) {
+                if (trim($msg) === 'DISCOVERY') {
+                    echo "[{$this->type}] Descoberta recebida de {$addr}\n";
+                    $this->sendDeviceInfo();
+                }
+            });
+        });
+    }
+
+    /**
+     * Envia informações do dispositivo para o Gateway
+     */
+    protected function sendDeviceInfo(): void
+    {
+        $info = new DeviceInfo();
+        $info->setName($this->name);
+        $info->setType($this->type);
+        $info->setIp($this->ip);
+        $info->setPort($this->port);
+        $info->setCurrentState($this->currentState);
+
+        $binary = $info->serializeToString();
+        $address = "{$this->multicastGroup}:{$this->gatewayResponsePort}";
+
+        $sock = @stream_socket_client("udp://{$address}", $errno, $errstr);
+        if ($sock) {
+            fwrite($sock, $binary);
+            fclose($sock);
+        }
+    }
+
+    /**
+     * Inicia servidor TCP para receber comandos
+     */
+    protected function startTcpServer(): void
+    {
+        $server = new SocketServer("0.0.0.0:{$this->port}", [], $this->loop);
+
+        $server->on('connection', function ($conn) {
+            $conn->on('data', function ($data) use ($conn) {
+                $cmd = new Command();
+                
+                try {
+                    $cmd->mergeFromString($data);
+                } catch (\Exception $e) {
+                    echo "[{$this->type}] Erro ao decodificar comando\n";
+                    return;
+                }
+
+                $response = $this->handleCommand($cmd);
+                $conn->write($response->serializeToString());
+            });
+        });
+    }
+
+    /**
+     * Processa um comando - implementado pelas classes filhas
+     */
+    abstract protected function handleCommand(Command $cmd): CommandResponse;
+
+    /**
+     * Cria uma resposta de comando
+     */
+    protected function createResponse(bool $success, string $message): CommandResponse
+    {
+        $response = new CommandResponse();
+        $response->setDeviceName($this->name);
+        $response->setSuccess($success);
+        $response->setMessage($message);
+        return $response;
+    }
+}
