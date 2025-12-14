@@ -7,6 +7,7 @@ use React\EventLoop\Loop;
 use React\Datagram\Factory;
 use React\Socket\SocketServer;
 use SensorData;
+use Command;
 
 class Gateway
 {
@@ -119,11 +120,39 @@ class Gateway
                 $cmd = trim($data);
 
                 if ($cmd === "LIST") {
-                    $conn->write(json_encode($this->deviceRegistry->listDevices(), JSON_PRETTY_PRINT));
-                } else {
-                    $conn->write("Comando inválido\n");
+                    $conn->write(json_encode($this->deviceRegistry->listDevices(), JSON_PRETTY_PRINT) . "\n");
+                    return;
                 }
-            });
+
+                $parts = explode(" ", $cmd);
+
+                // SET LIGHT <device> <red|yellow|green> p/ semaforo e sensor de temperatura
+
+                if (count($parts) >= 4 && $parts[0] === "SET" && $parts[1] === "LIGHT") {
+
+                    $deviceName = $parts[2];
+                    $color = $parts[3];
+
+                    $device = $this->deviceRegistry->getDevice($deviceName);
+
+                    if (!$device) {
+                        $conn->write("ERROR: device '$deviceName' not found.\n");
+                        return;
+                    }
+
+                    $command = new Command();
+                    $command->setDeviceName($deviceName);
+                    $command->setAction("SET_LIGHT");
+                    $command->setValue($color);
+
+                    $binary = $command->serializeToString();
+
+                    
+
+                    return;
+                }
+
+                $conn->write("Comando inválido\n");            });
         });
     }
 }
