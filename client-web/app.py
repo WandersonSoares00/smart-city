@@ -1,8 +1,12 @@
 from flask import Flask, render_template, redirect, request
 from gateway_client import GatewayClient
+from dotenv import load_dotenv
+from os import getenv
+
+load_dotenv() 
 
 app = Flask(__name__)
-gw = GatewayClient()
+gw = GatewayClient("127.0.0.1", getenv("GATEWAY_TCP_PORT"))
 gw.connect()
 
 @app.route("/")
