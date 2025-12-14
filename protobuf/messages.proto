@@ -22,7 +22,7 @@ message Command {
 
 message CommandResponse {
   string deviceName = 1;
-  string status = 2; // "OK", "ERROR"
+  bool success = 2;
   string message = 3;
 }
 
