@@ -1,8 +1,5 @@
 syntax = "proto3";
 
-message DiscoveryRequest {
-}
-
 message DeviceInfo {
   string name = 1;
   string type = 2;
@@ -18,13 +15,15 @@ message SensorData {
 }
 
 message Command {
-  string device_id = 1;
-  string action = 2;
+  string deviceName = 1;
+  string action = 2;   // "TURN_ON", "TURN_OFF", "SET_COLOR", "SET_STATE", etc
+  string value = 3;    // "GREEN", "RED", "30C" (opcional)
 }
 
 message CommandResponse {
-  string status = 1;
-  string message = 2;
+  string deviceName = 1;
+  string status = 2; // "OK", "ERROR"
+  string message = 3;
 }
 
 message DeviceList {
