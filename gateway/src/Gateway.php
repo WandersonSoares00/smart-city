@@ -8,6 +8,9 @@ use React\Datagram\Factory;
 use React\Socket\SocketServer;
 use SensorData;
 use Command;
+use CommandResponse;
+use React\Socket\ConnectionInterface;
+use React\Socket\Connector;
 
 class Gateway
 {
@@ -52,7 +55,7 @@ class Gateway
     {
         $factory = new Factory($this->loop);
 
-        $factory->createServer("0.0.0.0:$this->response_port" . $this->port)->then(function ($server) {
+        $factory->createServer("0.0.0.0:{$this->response_port}")->then(function ($server) {
 
             echo "[DISCOVERY] Aguardando respostas dos dispositivos...\n";
 
@@ -105,6 +108,41 @@ class Gateway
         });
     }
 
+    private function sendCommandToDevice(Device $device, Command $cmd, callable $onResponse): void {
+        
+        $connector = new Connector($this->loop);
+        $address = "{$device->ip}:{$device->port}";
+
+        $connector->connect($address)->then(
+            function (ConnectionInterface $deviceConn) use ($cmd, $onResponse) {
+
+                $deviceConn->write($cmd->serializeToString());
+
+                $deviceConn->on('data', function ($data) use ($onResponse) {
+
+                    $resp = new CommandResponse();
+                    try {
+                        $resp->mergeFromString($data);
+                    } catch (\Exception $e) {
+                        $onResponse("Erro ao decodificar resposta do dispositivo");
+                        return;
+                    }
+
+                    $onResponse($resp);
+                });
+            },
+            function () use ($device, $onResponse) {
+
+                $resp = new CommandResponse();
+                $resp->setDeviceName($device->name);
+                $resp->setSuccess(false);
+                $resp->setMessage("Falha ao conectar ao dispositivo.");
+
+                $onResponse($resp);
+            }
+        );
+    }
+
     private function startTcpServer(): void
     {
         $port = (int) $_ENV["GATEWAY_TCP_PORT"];
@@ -145,9 +183,13 @@ class Gateway
                     $command->setAction("SET_LIGHT");
                     $command->setValue($color);
 
-                    $binary = $command->serializeToString();
-
-                    
+                    $this->sendCommandToDevice($device, $command, function (CommandResponse $resp) use ($conn) {
+                        $conn->write(json_encode([
+                            "device"  => $resp->getDeviceName(),
+                            "success" => $resp->getSuccess(),
+                            "message" => $resp->getMessage()
+                        ]) . "\n");
+                    });
 
                     return;
                 }
