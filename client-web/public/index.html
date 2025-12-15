@@ -270,6 +270,8 @@
         }
 
         function handleWebSocketMessage(data) {
+            console.log('Mensagem recebida:', data.type, data);
+            
             if (data.type === 'DEVICE_LIST') {
                 renderDevices(data.devices);
             } else if (data.type === 'COMMAND_RESPONSE') {
@@ -279,7 +281,17 @@
                 );
                 refreshDevices();
             } else if (data.type === 'ERROR') {
+                console.error('Erro do servidor:', data.message);
                 showNotification(data.message, 'error');
+                // Mostra mensagem de erro na tela
+                const container = document.getElementById('devicesContainer');
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h2>⚠️ Erro de Comunicação</h2>
+                        <p>${data.message}</p>
+                        <button onclick="refreshDevices()" style="margin-top: 20px;">🔄 Tentar Novamente</button>
+                    </div>
+                `;
             }
         }
 
