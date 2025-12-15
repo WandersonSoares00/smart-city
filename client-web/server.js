@@ -10,49 +10,71 @@ const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
 const GATEWAY_HOST = 'localhost';
-const GATEWAY_PORT = 7000;
+const GATEWAY_PORT = 8000;
 
 let protoRoot;
-let DeviceList, Command, CommandResponse;
+let DeviceList, DeviceInfo, Command, CommandResponse;
 
 // Carrega o arquivo .proto
 async function loadProto() {
-    protoRoot = await protobuf.load(path.join(__dirname, '../protobuf/messages.proto'));
-    DeviceList = protoRoot.lookupType('DeviceList');
-    Command = protoRoot.lookupType('Command');
-    CommandResponse = protoRoot.lookupType('CommandResponse');
-    console.log('✓ Protocol Buffers carregados');
+    try {
+        // AJUSTE O CAMINHO PARA SEU ARQUIVO messages.proto
+        protoRoot = await protobuf.load(path.join(__dirname, '../protobuf/messages.proto'));
+        
+        DeviceList = protoRoot.lookupType('DeviceList');
+        DeviceInfo = protoRoot.lookupType('DeviceInfo');
+        Command = protoRoot.lookupType('Command');
+        CommandResponse = protoRoot.lookupType('CommandResponse');
+        
+        console.log('✓ Protocol Buffers carregados');
+    } catch (error) {
+        console.error('✗ Erro ao carregar .proto:', error.message);
+        console.log('  Ajuste o caminho em server.js linha 19');
+        console.log('  Caminho tentado:', path.join(__dirname, '../protobuf/messages.proto'));
+        process.exit(1);
+    }
 }
 
 // Conecta ao Gateway e envia comando
-function sendToGateway(message) {
+function sendToGateway(data, expectProtobuf = true) {
     return new Promise((resolve, reject) => {
         const client = new net.Socket();
         let responseBuffer = Buffer.alloc(0);
 
         client.connect(GATEWAY_PORT, GATEWAY_HOST, () => {
-            console.log('→ Conectado ao Gateway');
-            client.write(message);
+            console.log('→ Conectado ao Gateway:', GATEWAY_HOST + ':' + GATEWAY_PORT);
+            console.log('→ Enviando:', data.length, 'bytes');
+            client.write(data);
         });
 
-        client.on('data', (data) => {
-            responseBuffer = Buffer.concat([responseBuffer, data]);
+        client.on('data', (chunk) => {
+            responseBuffer = Buffer.concat([responseBuffer, chunk]);
+            console.log('← Chunk recebido:', chunk.length, 'bytes');
         });
 
         client.on('end', () => {
-            console.log('← Resposta recebida do Gateway');
+            console.log('← Conexão encerrada, total:', responseBuffer.length, 'bytes');
             resolve(responseBuffer);
             client.destroy();
         });
 
         client.on('error', (err) => {
-            console.error('✗ Erro na conexão:', err.message);
+            console.error('✗ Erro TCP:', err.message);
             reject(err);
+            client.destroy();
         });
 
         setTimeout(() => {
-            client.destroy();
-            reject(new Error('Timeout na conexão'));
+            if (!client.destroyed) {
+                console.log('⏱ Timeout após 5s');
+                if (responseBuffer.length > 0) {
+                    console.log('  Retornando dados parciais:', responseBuffer.length, 'bytes');
+                    resolve(responseBuffer);
+                } else {
+                    reject(new Error('Timeout: Gateway não respondeu'));
+                }
+                client.destroy();
+            }
         }, 5000);
     });
 }
@@ -60,11 +82,40 @@ function sendToGateway(message) {
 // Lista dispositivos
 async function listDevices() {
     try {
-        const response = await sendToGateway(Buffer.from('LIST\n'));
-        const deviceList = DeviceList.decode(response);
-        return deviceList.devices;
+        console.log('\n📋 === LISTANDO DISPOSITIVOS ===');
+        
+        // Envia comando LIST em texto (como no Gateway PHP original)
+        const listCommand = Buffer.from('LIST\n');
+        const responseBuffer = await sendToGateway(listCommand);
+        
+        console.log('← Resposta bruta (primeiros 200 bytes):');
+        console.log('  ', responseBuffer.slice(0, 200).toString('hex'));
+        
+        try {
+            // Tenta decodificar como DeviceList
+            const deviceList = DeviceList.decode(responseBuffer);
+            console.log('✓ Decodificado como DeviceList');
+            console.log('  Total de dispositivos:', deviceList.devices.length);
+            
+            deviceList.devices.forEach((dev, i) => {
+                console.log(`  [${i}] ${dev.name} (${dev.type}) - ${dev.ip}:${dev.port}`);
+            });
+            
+            return deviceList.devices;
+            
+        } catch (decodeError) {
+            console.log('✗ Falha ao decodificar como Protobuf:', decodeError.message);
+            console.log('  Tentando interpretar como texto...');
+            
+            const textResponse = responseBuffer.toString('utf8');
+            console.log('  Resposta como texto:', textResponse.substring(0, 500));
+            
+            // Se for texto, retorna array vazio
+            return [];
+        }
+        
     } catch (error) {
-        console.error('Erro ao listar dispositivos:', error);
+        console.error('✗ Erro ao listar dispositivos:', error.message);
         throw error;
     }
 }
@@ -72,27 +123,48 @@ async function listDevices() {
 // Envia comando para dispositivo
 async function sendCommand(deviceName, action, value = '') {
     try {
-        const command = Command.create({ deviceName, action, value });
-        const buffer = Command.encode(command).finish();
+        console.log(`\n📤 === ENVIANDO COMANDO ===`);
+        console.log(`  Dispositivo: ${deviceName}`);
+        console.log(`  Ação: ${action}`);
+        console.log(`  Valor: ${value || '(vazio)'}`);
         
-        const cmdStr = value 
-            ? `CMD ${deviceName} ${action} ${value}\n`
-            : `CMD ${deviceName} ${action}\n`;
+        // Cria mensagem Command
+        const command = Command.create({
+            deviceName: deviceName,
+            action: action,
+            value: value
+        });
         
-        const response = await sendToGateway(Buffer.from(cmdStr));
+        // Serializa
+        const commandBuffer = Command.encode(command).finish();
+        console.log('→ Command serializado:', commandBuffer.length, 'bytes');
+        
+        // Envia para o Gateway
+        const responseBuffer = await sendToGateway(commandBuffer);
         
         try {
-            const cmdResponse = CommandResponse.decode(response);
-            return cmdResponse;
-        } catch {
-            return { 
-                deviceName, 
-                success: true, 
-                message: response.toString() 
+            // Tenta decodificar como CommandResponse
+            const response = CommandResponse.decode(responseBuffer);
+            console.log('✓ Resposta decodificada:');
+            console.log(`  Dispositivo: ${response.deviceName}`);
+            console.log(`  Sucesso: ${response.success}`);
+            console.log(`  Mensagem: ${response.message}`);
+            
+            return response;
+            
+        } catch (decodeError) {
+            console.log('✗ Falha ao decodificar resposta:', decodeError.message);
+            
+            // Resposta de fallback
+            return {
+                deviceName: deviceName,
+                success: true,
+                message: 'Comando enviado (resposta não decodificada)'
             };
         }
+        
     } catch (error) {
-        console.error('Erro ao enviar comando:', error);
+        console.error('✗ Erro ao enviar comando:', error.message);
         throw error;
     }
 }
@@ -121,30 +193,52 @@ app.post('/api/command', async (req, res) => {
     }
 });
 
-// WebSocket para atualizações em tempo real
+// WebSocket
 wss.on('connection', (ws) => {
-    console.log('✓ Cliente WebSocket conectado');
+    console.log('\n✓ Cliente WebSocket conectado');
 
     ws.on('message', async (message) => {
         try {
             const data = JSON.parse(message);
+            console.log('📨 WebSocket recebeu:', data.type);
             
             if (data.type === 'LIST_DEVICES') {
-                const devices = await listDevices();
-                ws.send(JSON.stringify({ type: 'DEVICE_LIST', devices }));
+                try {
+                    const devices = await listDevices();
+                    ws.send(JSON.stringify({ 
+                        type: 'DEVICE_LIST', 
+                        devices: devices 
+                    }));
+                } catch (error) {
+                    ws.send(JSON.stringify({ 
+                        type: 'ERROR', 
+                        message: 'Erro ao listar: ' + error.message 
+                    }));
+                }
             } 
             else if (data.type === 'SEND_COMMAND') {
-                const response = await sendCommand(
-                    data.deviceName, 
-                    data.action, 
-                    data.value
-                );
-                ws.send(JSON.stringify({ type: 'COMMAND_RESPONSE', response }));
+                try {
+                    const response = await sendCommand(
+                        data.deviceName, 
+                        data.action, 
+                        data.value || ''
+                    );
+                    ws.send(JSON.stringify({ 
+                        type: 'COMMAND_RESPONSE', 
+                        response: response 
+                    }));
+                } catch (error) {
+                    ws.send(JSON.stringify({ 
+                        type: 'ERROR', 
+                        message: 'Erro ao enviar comando: ' + error.message 
+                    }));
+                }
             }
         } catch (error) {
+            console.error('✗ Erro no WebSocket:', error);
             ws.send(JSON.stringify({ 
                 type: 'ERROR', 
-                message: error.message 
+                message: 'Erro: ' + error.message 
             }));
         }
     });
@@ -152,20 +246,26 @@ wss.on('connection', (ws) => {
     ws.on('close', () => {
         console.log('✗ Cliente WebSocket desconectado');
     });
+    
+    ws.on('error', (error) => {
+        console.error('✗ Erro WebSocket:', error);
+    });
 });
 
 // Inicia o servidor
 async function start() {
+    console.log('═══════════════════════════════════════════════');
+    console.log('  🌐 Cliente Web - Cidade Inteligente');
+    console.log('═══════════════════════════════════════════════');
+    
     await loadProto();
     
     const PORT = process.env.PORT || 3000;
     server.listen(PORT, () => {
-        console.log('═══════════════════════════════════════════════');
-        console.log('  🌐 Cliente Web - Sistema Cidade Inteligente');
-        console.log('═══════════════════════════════════════════════');
-        console.log(`  Servidor rodando em: http://localhost:${PORT}`);
+        console.log(`  Web: http://localhost:${PORT}`);
         console.log(`  Gateway: ${GATEWAY_HOST}:${GATEWAY_PORT}`);
         console.log('═══════════════════════════════════════════════');
+        console.log('  Aguardando conexões...\n');
     });
 }
 
