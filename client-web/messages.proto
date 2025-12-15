@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+message DeviceInfo {
+  string name = 1;
+  string type = 2;
+  string ip = 3;
+  uint32 port = 4;
+  string currentState = 5;
+}
+
+message SensorData {
+  string deviceName = 1;
+  string type = 2;
+  string value = 3;
+}
+
+message Command {
+  string deviceName = 1;
+  string action = 2;   // "TURN_ON", "TURN_OFF", "SET_COLOR", "SET_STATE", etc
+  string value = 3;    // "GREEN", "RED", "30C" (opcional)
+}
+
+message CommandResponse {
+  string deviceName = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+message DeviceList {
+  repeated DeviceInfo devices = 1;
+}
