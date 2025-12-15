@@ -1,204 +1,247 @@
 # 🌐 Cliente Web - Sistema Cidade Inteligente
 
-Cliente web com interface gráfica para controlar e monitorar dispositivos inteligentes através do Gateway.
+Cliente web simplificado que se comunica com o Gateway usando Protocol Buffers, idêntico ao `client.py`.
 
-## 📁 Estrutura do Projeto
+## 📁 Estrutura
 
 ```
 client-web/
-├── server.js              # Backend Node.js
-├── package.json          # Dependências
+├── server.js           # Backend Node.js (replica client.py)
+├── smartcity.proto     # Definição Protocol Buffers
+├── package.json        # Dependências
 ├── public/
-│   └── index.html        # Interface web
+│   └── index.html      # Interface web
 └── README.md
 ```
 
-## 🚀 Instalação
+## 🚀 Instalação Rápida
 
-### 1. Instalar Node.js
-Certifique-se de ter o Node.js instalado (v14 ou superior):
 ```bash
-node --version
-```
-
-### 2. Criar a estrutura do projeto
-```bash
-mkdir -p client-web/public
+# 1. Criar pasta e entrar
+mkdir client-web
 cd client-web
-```
 
-### 3. Instalar dependências
-```bash
+# 2. Criar subpasta public
+mkdir public
+
+# 3. Copiar os arquivos:
+#    - server.js (backend)
+#    - smartcity.proto (protocol buffers)
+#    - package.json (dependências)
+#    - public/index.html (interface)
+
+# 4. Instalar dependências
 npm install
+
+# 5. Iniciar
+npm start
 ```
 
-## ⚙️ Configuração
+## 📋 Arquivos Necessários
 
-### Ajustar caminho do Protocol Buffers
-Edite o `server.js` na linha 14 para apontar para o seu arquivo `messages.proto`:
+### 1. `smartcity.proto`
+Coloque este arquivo na raiz de `client-web/`:
 
-```javascript
-protoRoot = await protobuf.load(path.join(__dirname, '../protobuf/messages.proto'));
+```protobuf
+syntax = "proto3";
+
+message Command {
+  string target_id = 1;
+  string action = 2;
+  string value = 3;
+}
+
+message Response {
+  string status = 1;
+  string message = 2;
+  repeated string devices_list = 3;
+}
+
+message Message {
+  int32 id = 1;
+  string source_id = 2;
+  Command command = 3;
+  Response response = 4;
+}
 ```
 
-Ajuste o caminho conforme sua estrutura:
-- Se o `.proto` está na raiz: `'../messages.proto'`
-- Se está em uma pasta específica: `'../protobuf/messages.proto'`
+## ⚙️ Como Funciona
 
-### Configurar endereço do Gateway
-No `server.js`, linhas 10-11:
+O cliente web replica **exatamente** o comportamento do `client.py`:
 
+### Python (client.py):
+```python
+msg = pb.Message()
+msg.id = 1
+msg.source_id = "CLIENTE_ADMIN"
+msg.command.target_id = ""
+msg.command.action = "LIST"
+s.send(msg.SerializeToString())
+```
+
+### Node.js (server.js):
 ```javascript
-const GATEWAY_HOST = 'localhost';  // Altere se o Gateway estiver em outro host
-const GATEWAY_PORT = 7000;         // Porta do seu Gateway
+const msg = Message.create({
+    id: 1,
+    source_id: "CLIENT_WEB",
+    command: {
+        target_id: "",
+        action: "LIST",
+        value: ""
+    }
+});
+const buffer = Message.encode(msg).finish();
+socket.write(buffer);
 ```
 
 ## 🎮 Como Usar
 
-### 1. Iniciar o Gateway
-Primeiro, certifique-se de que seu Gateway PHP está rodando:
+### 1. Inicie o Gateway
 ```bash
 cd gateway
 php run.php
 ```
 
-### 2. Iniciar os Dispositivos
-Execute seus dispositivos inteligentes em terminais separados.
-
-### 3. Iniciar o Cliente Web
+### 2. Inicie o Cliente Web
 ```bash
 cd client-web
 npm start
 ```
 
-### 4. Acessar a Interface
-Abra seu navegador em:
+### 3. Acesse a Interface
 ```
 http://localhost:3000
 ```
 
-## 🎯 Funcionalidades
+## 🔧 Funcionalidades
 
-### ✅ Visualização de Dispositivos
-- Lista todos os dispositivos conectados ao Gateway
-- Mostra tipo, IP, porta e estado atual
-- Atualização automática a cada 10 segundos
+### ✅ Listar Dispositivos
+- Botão: **"🔄 Atualizar Dispositivos"**
+- Equivalente ao comando `LIST` do Python
+- Mostra todos os dispositivos conectados
 
-### ✅ Controle de Postes
-- 🔆 Ligar/Desligar
-- 💡 Ajustar brilho (0-100)
+### ✅ Enviar Comandos
+Cada dispositivo tem formulário com:
+- **Target ID**: ID do dispositivo (ex: `TL_01`)
+- **Action**: Ação a executar (ex: `SET_COLOR`)
+- **Value**: Valor opcional (ex: `RED`, `GREEN`)
 
-### ✅ Controle de Semáforos
-- 🔴 Definir luz (Vermelho/Amarelo/Verde)
-- ⚙️ Modo automático/manual
+### ✅ Comandos Rápidos
+Botões pré-configurados:
+- 🔴 **TL_01 RED** - Semáforo vermelho
+- 🟢 **TL_01 GREEN** - Semáforo verde
+- 📋 **LIST** - Atualizar lista
 
-### ✅ Controle de Câmeras
-- ▶️ Ligar/Desligar
-- 📹 Ajustar resolução (HD/4K)
-
-### ✅ Controle de Sensores
-- 📊 Obter leituras
-- ⏱️ Ajustar intervalo de medição
-
-## 🔧 Comandos Suportados
-
-O cliente envia comandos no formato do Gateway:
+## 📡 Comunicação
 
 ```
-CMD <dispositivo> <ação> [valor]
+┌──────────────┐                    ┌──────────────┐
+│   Browser    │ ◄── HTTP/JSON ──► │  server.js   │
+└──────────────┘                    └──────┬───────┘
+                                           │
+                                           │ TCP
+                                           │ Protocol Buffers
+                                           │ (Igual client.py)
+                                           │
+                                    ┌──────▼───────┐
+                                    │   Gateway    │
+                                    │   (PHP)      │
+                                    └──────────────┘
 ```
-
-Exemplos:
-- `CMD Poste-Rua-1 TURN_ON`
-- `CMD Poste-Rua-1 SET_BRIGHTNESS 80`
-- `CMD Semaforo-Centro SET_LIGHT RED`
-- `CMD Camera-Praca SET_RESOLUTION 4K`
-- `CMD Temp-Centro GET_READING`
 
 ## 🐛 Troubleshooting
 
-### Erro "Cannot find module 'protobufjs'"
+### "Cannot find module 'protobufjs'"
 ```bash
 npm install
 ```
 
-### "Erro ao conectar com o Gateway"
-Verifique se:
-1. O Gateway está rodando na porta 7000
-2. O endereço `GATEWAY_HOST` está correto
-3. Não há firewall bloqueando a conexão
+### "Erro ao carregar .proto"
+Verifique se `smartcity.proto` está em `client-web/smartcity.proto`
+
+### "Erro de conexão"
+Verifique:
+1. Gateway rodando na porta **8000**
+2. Endereço correto no `server.js` (linha 7-8)
 
 ### "Nenhum dispositivo encontrado"
-Verifique se:
-1. Os dispositivos estão executando
-2. Os dispositivos se registraram no Gateway
-3. O Gateway está respondendo ao comando `LIST`
+- Gateway está rodando?
+- Dispositivos estão conectados?
+- Teste com o `client.py` primeiro
 
-### Página não carrega
-Verifique se:
-1. A porta 3000 está disponível
-2. O arquivo `index.html` está em `public/index.html`
-3. Tente mudar a porta: `PORT=8080 npm start`
+## 🔍 Debug
 
-## 📊 Status de Conexão
+O servidor mostra logs detalhados:
+```
+→ Conectado ao Gateway
+← Recebeu resposta: 156 bytes
+Status: OK
+Mensagem: Lista de dispositivos
+Dispositivos: 3
+```
 
-A interface mostra o status em tempo real:
-- 🟢 **Conectado**: Comunicação ativa com o Gateway
-- 🔴 **Desconectado**: Sem conexão, tentando reconectar
+Abra o console do navegador (F12) para ver logs do frontend.
 
-## 🔄 Atualização Automática
+## ⚡ Diferenças do client.py
 
-- **Manual**: Botão "🔄 Atualizar Dispositivos"
-- **Automática**: A cada 10 segundos
-- **Após comandos**: Atualiza automaticamente após enviar um comando
+| Aspecto | client.py | client-web |
+|---------|-----------|------------|
+| Interface | Terminal CLI | Web Browser |
+| Linguagem | Python | Node.js + HTML |
+| Protocolo | TCP + Protobuf | TCP + Protobuf |
+| Formato mensagem | **Idêntico** | **Idêntico** |
+| WebSocket | ❌ | ❌ |
+| Complexidade | Simples | Simples |
 
-## 💡 Dicas
+## 📝 Exemplos de Comandos
 
-1. **Mantenha o Gateway rodando** antes de iniciar o cliente
-2. **Use Chrome ou Firefox** para melhor compatibilidade
-3. **Abra o console do navegador** (F12) para ver logs detalhados
-4. **Para desenvolvimento**, use `npm run dev` para auto-reload
+### Listar dispositivos:
+- Target ID: *(vazio)*
+- Action: `LIST`
+- Value: *(vazio)*
+
+### Controlar semáforo:
+- Target ID: `TL_01`
+- Action: `SET_COLOR`
+- Value: `RED` ou `GREEN`
+
+### Ligar poste:
+- Target ID: `Poste-Rua-1`
+- Action: `TURN_ON`
+- Value: *(vazio)*
+
+### Ajustar câmera:
+- Target ID: `Camera-Praca`
+- Action: `SET_RESOLUTION`
+- Value: `4K`
 
 ## 🎨 Personalização
 
-### Alterar porta do servidor
+### Alterar porta do servidor web:
 ```bash
 PORT=8080 npm start
 ```
 
-### Customizar interface
-Edite o arquivo `public/index.html` para alterar:
-- Cores e estilos (tag `<style>`)
-- Layout dos cards
-- Ações disponíveis por dispositivo
-
-## 📝 Notas
-
-- O cliente usa **WebSockets** para comunicação em tempo real
-- O backend gerencia a conexão TCP com o Gateway
-- Protocol Buffers é usado para serialização de mensagens
-- Interface responsiva, funciona em desktop e mobile
-
-## 🤝 Integração com o Sistema
-
+### Alterar Gateway:
+Edite `server.js` linhas 7-8:
+```javascript
+const GATEWAY_HOST = 'localhost';
+const GATEWAY_PORT = 8000;
 ```
-┌─────────────┐      WebSocket       ┌──────────────┐
-│   Browser   │ ←─────────────────→ │  Cliente Web │
-└─────────────┘                      │  (Node.js)   │
-                                     └──────┬───────┘
-                                            │ TCP
-                                            │ Protocol Buffers
-                                     ┌──────▼───────┐
-                                     │   Gateway    │
-                                     │   (PHP)      │
-                                     └──────┬───────┘
-                                            │ TCP
-                        ┌───────────────────┼───────────────────┐
-                        │                   │                   │
-                   ┌────▼─────┐      ┌─────▼────┐      ┌──────▼─────┐
-                   │  Poste   │      │ Semáforo │      │  Câmera    │
-                   └──────────┘      └──────────┘      └────────────┘
-```
+
+## ✅ Checklist de Instalação
+
+- [ ] Node.js instalado (v14+)
+- [ ] Pasta `client-web/` criada
+- [ ] Pasta `client-web/public/` criada
+- [ ] Arquivo `smartcity.proto` na raiz
+- [ ] Arquivo `server.js` na raiz
+- [ ] Arquivo `package.json` na raiz
+- [ ] Arquivo `index.html` em `public/`
+- [ ] `npm install` executado
+- [ ] Gateway rodando na porta 8000
+- [ ] `npm start` executado
+- [ ] Browser acessando `localhost:3000`
 
 ## 📄 Licença
 

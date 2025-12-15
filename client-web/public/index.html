@@ -56,6 +56,10 @@
             animation: pulse 2s infinite;
         }
 
+        .status-dot.error {
+            background: #ef4444;
+        }
+
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
@@ -91,7 +95,7 @@
 
         .devices-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
             gap: 20px;
         }
 
@@ -100,73 +104,47 @@
             border-radius: 10px;
             padding: 20px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: transform 0.2s;
-        }
-
-        .device-card:hover {
-            transform: translateY(-5px);
         }
 
         .device-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #333;
             margin-bottom: 15px;
             padding-bottom: 10px;
             border-bottom: 2px solid #f0f4ff;
         }
 
-        .device-name {
-            font-weight: bold;
-            font-size: 1.1em;
-            color: #333;
-        }
-
-        .device-type {
-            background: #667eea;
-            color: white;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 0.85em;
-        }
-
         .device-info {
             margin: 10px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
             font-size: 0.9em;
             color: #666;
+            word-wrap: break-word;
         }
 
-        .device-state {
-            background: #f0f4ff;
-            padding: 10px;
-            border-radius: 5px;
-            margin: 10px 0;
-            font-family: monospace;
-            font-size: 0.9em;
-        }
-
-        .device-actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
+        .command-section {
             margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
         }
 
-        .device-actions button {
-            flex: 1;
-            min-width: 100px;
-            padding: 8px 12px;
+        .command-section h3 {
             font-size: 0.9em;
+            color: #667eea;
+            margin-bottom: 10px;
         }
 
         .input-group {
             display: flex;
+            flex-direction: column;
             gap: 10px;
-            margin-top: 10px;
+            margin-bottom: 10px;
         }
 
         .input-group input {
-            flex: 1;
             padding: 8px;
             border: 1px solid #ddd;
             border-radius: 5px;
@@ -174,7 +152,21 @@
         }
 
         .input-group button {
-            flex: 0 0 auto;
+            width: 100%;
+        }
+
+        .quick-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .quick-actions button {
+            flex: 1;
+            min-width: 80px;
+            padding: 8px 12px;
+            font-size: 0.85em;
         }
 
         .notification {
@@ -209,10 +201,6 @@
             color: white;
         }
 
-        .empty-state h2 {
-            margin-bottom: 10px;
-        }
-
         .loading {
             text-align: center;
             padding: 40px;
@@ -226,8 +214,8 @@
         <header>
             <h1>🏙️ Smart City Control Panel</h1>
             <div class="status">
-                <div class="status-dot"></div>
-                <span id="connectionStatus">Conectando...</span>
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">Sistema inicializado</span>
             </div>
         </header>
 
@@ -241,66 +229,44 @@
     </div>
 
     <script>
-        let ws;
-        const notifications = [];
+        let devices = [];
 
-        function connectWebSocket() {
-            ws = new WebSocket(`ws://${window.location.host}`);
-
-            ws.onopen = () => {
-                document.getElementById('connectionStatus').textContent = 'Conectado ao Gateway';
-                showNotification('Conectado ao sistema', 'success');
-                refreshDevices();
-            };
-
-            ws.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                handleWebSocketMessage(data);
-            };
-
-            ws.onerror = () => {
-                document.getElementById('connectionStatus').textContent = 'Erro de conexão';
-                showNotification('Erro ao conectar com o Gateway', 'error');
-            };
-
-            ws.onclose = () => {
-                document.getElementById('connectionStatus').textContent = 'Desconectado';
-                setTimeout(connectWebSocket, 3000);
-            };
-        }
-
-        function handleWebSocketMessage(data) {
-            console.log('Mensagem recebida:', data.type, data);
-            
-            if (data.type === 'DEVICE_LIST') {
-                renderDevices(data.devices);
-            } else if (data.type === 'COMMAND_RESPONSE') {
-                showNotification(
-                    data.response.message || 'Comando executado',
-                    data.response.success ? 'success' : 'error'
-                );
-                refreshDevices();
-            } else if (data.type === 'ERROR') {
-                console.error('Erro do servidor:', data.message);
-                showNotification(data.message, 'error');
-                // Mostra mensagem de erro na tela
-                const container = document.getElementById('devicesContainer');
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <h2>⚠️ Erro de Comunicação</h2>
-                        <p>${data.message}</p>
-                        <button onclick="refreshDevices()" style="margin-top: 20px;">🔄 Tentar Novamente</button>
-                    </div>
-                `;
+        // Atualiza status
+        function setStatus(text, isError = false) {
+            document.getElementById('statusText').textContent = text;
+            const dot = document.getElementById('statusDot');
+            if (isError) {
+                dot.classList.add('error');
+            } else {
+                dot.classList.remove('error');
             }
         }
 
-        function refreshDevices() {
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ type: 'LIST_DEVICES' }));
+        // Carrega dispositivos
+        async function refreshDevices() {
+            try {
+                setStatus('Consultando dispositivos...');
+                
+                const response = await fetch('/api/devices');
+                const data = await response.json();
+
+                if (data.success) {
+                    devices = data.devices;
+                    renderDevices(devices);
+                    setStatus(`${devices.length} dispositivo(s) conectado(s)`);
+                    showNotification(`${devices.length} dispositivos encontrados`, 'success');
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                setStatus('Erro ao conectar', true);
+                showNotification('Erro: ' + error.message, 'error');
+                renderError(error.message);
             }
         }
 
+        // Renderiza dispositivos
         function renderDevices(devices) {
             const container = document.getElementById('devicesContainer');
             
@@ -315,97 +281,122 @@
             }
 
             container.className = 'devices-grid';
-            container.innerHTML = devices.map(device => createDeviceCard(device)).join('');
-        }
-
-        function createDeviceCard(device) {
-            const deviceType = device.type.toLowerCase();
-            let actions = '';
-
-            // Ações específicas por tipo de dispositivo
-            if (deviceType.includes('poste')) {
-                actions = `
-                    <button onclick="sendCommand('${device.name}', 'TURN_ON')">🔆 Ligar</button>
-                    <button onclick="sendCommand('${device.name}', 'TURN_OFF')">🌙 Desligar</button>
-                    <div class="input-group">
-                        <input type="number" id="${device.name}-brightness" placeholder="Brilho (0-100)" min="0" max="100">
-                        <button onclick="setBrightness('${device.name}')">💡 Ajustar</button>
-                    </div>
-                `;
-            } else if (deviceType.includes('semaforo')) {
-                actions = `
-                    <button onclick="sendCommand('${device.name}', 'SET_LIGHT', 'RED')">🔴 Vermelho</button>
-                    <button onclick="sendCommand('${device.name}', 'SET_LIGHT', 'YELLOW')">🟡 Amarelo</button>
-                    <button onclick="sendCommand('${device.name}', 'SET_LIGHT', 'GREEN')">🟢 Verde</button>
-                    <button onclick="sendCommand('${device.name}', 'SET_MODE', 'AUTO')">⚙️ Modo Auto</button>
-                `;
-            } else if (deviceType.includes('camera')) {
-                actions = `
-                    <button onclick="sendCommand('${device.name}', 'TURN_ON')">▶️ Ligar</button>
-                    <button onclick="sendCommand('${device.name}', 'TURN_OFF')">⏸️ Desligar</button>
-                    <button onclick="sendCommand('${device.name}', 'SET_RESOLUTION', 'HD')">HD</button>
-                    <button onclick="sendCommand('${device.name}', 'SET_RESOLUTION', '4K')">4K</button>
-                `;
-            } else {
-                actions = `
-                    <button onclick="sendCommand('${device.name}', 'GET_READING')">📊 Ler Dados</button>
-                    <div class="input-group">
-                        <input type="number" id="${device.name}-interval" placeholder="Intervalo (s)">
-                        <button onclick="setInterval('${device.name}')">⏱️ Intervalo</button>
-                    </div>
-                `;
-            }
-
-            return `
+            container.innerHTML = devices.map((device, index) => `
                 <div class="device-card">
                     <div class="device-header">
-                        <div class="device-name">${device.name}</div>
-                        <div class="device-type">${device.type}</div>
+                        📡 Dispositivo ${index + 1}
                     </div>
                     <div class="device-info">
-                        📍 ${device.ip}:${device.port}
+                        ${device.rawInfo || device.name}
                     </div>
-                    <div class="device-state">
-                        Estado: ${device.currentState || 'N/A'}
+                    
+                    <div class="command-section">
+                        <h3>🎮 Enviar Comando</h3>
+                        
+                        <div class="input-group">
+                            <input type="text" 
+                                   id="deviceName-${index}" 
+                                   placeholder="Nome do dispositivo (ex: Poste-Rua-1)"
+                                   value="">
+                            <input type="text" 
+                                   id="action-${index}" 
+                                   placeholder="Ação (ex: TURN_ON, SET_COLOR)"
+                                   value="">
+                            <input type="text" 
+                                   id="value-${index}" 
+                                   placeholder="Valor (ex: RED, 80) - opcional"
+                                   value="">
+                            <button onclick="sendCustomCommand(${index})">
+                                📤 Enviar
+                            </button>
+                        </div>
+                        
+                        <div class="quick-actions">
+                            <button onclick="quickCommand('Poste-Rua-1', 'TURN_ON', '')">
+                                💡 Ligar Poste
+                            </button>
+                            <button onclick="quickCommand('Poste-Rua-1', 'TURN_OFF', '')">
+                                🌙 Desligar Poste
+                            </button>
+                            <button onclick="quickCommand('Semaforo-Centro', 'SET_LIGHT', 'RED')">
+                                🔴 Semáforo RED
+                            </button>
+                            <button onclick="quickCommand('Semaforo-Centro', 'SET_LIGHT', 'GREEN')">
+                                🟢 Semáforo GREEN
+                            </button>
+                        </div>
                     </div>
-                    <div class="device-actions">
-                        ${actions}
-                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Renderiza erro
+        function renderError(message) {
+            const container = document.getElementById('devicesContainer');
+            container.innerHTML = `
+                <div class="empty-state">
+                    <h2>⚠️ Erro de Comunicação</h2>
+                    <p>${message}</p>
+                    <button onclick="refreshDevices()" style="margin-top: 20px; background: white; color: #667eea;">
+                        🔄 Tentar Novamente
+                    </button>
                 </div>
             `;
         }
 
-        function sendCommand(deviceName, action, value = '') {
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({
-                    type: 'SEND_COMMAND',
-                    deviceName,
-                    action,
-                    value
-                }));
-            } else {
-                showNotification('Sem conexão com o Gateway', 'error');
+        // Envia comando customizado
+        async function sendCustomCommand(index) {
+            const deviceName = document.getElementById(`deviceName-${index}`).value;
+            const action = document.getElementById(`action-${index}`).value;
+            const value = document.getElementById(`value-${index}`).value;
+
+            if (!action) {
+                showNotification('Por favor, informe a ação', 'error');
+                return;
+            }
+
+            await sendCommand(deviceName, action, value);
+        }
+
+        // Comando rápido
+        async function quickCommand(deviceName, action, value) {
+            await sendCommand(deviceName, action, value);
+        }
+
+        // Envia comando para o Gateway
+        async function sendCommand(deviceName, action, value) {
+            try {
+                setStatus('Enviando comando...');
+                
+                const response = await fetch('/api/command', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ deviceName, action, value })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    setStatus('Comando executado');
+                    showNotification(data.result.message, data.result.success ? 'success' : 'error');
+                    
+                    // Atualiza lista se foi LIST
+                    if (action === 'LIST') {
+                        setTimeout(refreshDevices, 500);
+                    }
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                setStatus('Erro ao enviar comando', true);
+                showNotification('Erro: ' + error.message, 'error');
             }
         }
 
-        function setBrightness(deviceName) {
-            const input = document.getElementById(`${deviceName}-brightness`);
-            const value = input.value;
-            if (value) {
-                sendCommand(deviceName, 'SET_BRIGHTNESS', value);
-                input.value = '';
-            }
-        }
-
-        function setInterval(deviceName) {
-            const input = document.getElementById(`${deviceName}-interval`);
-            const value = input.value;
-            if (value) {
-                sendCommand(deviceName, 'SET_INTERVAL', value);
-                input.value = '';
-            }
-        }
-
+        // Mostra notificação
         function showNotification(message, type = 'success') {
             const notification = document.createElement('div');
             notification.className = `notification ${type}`;
@@ -418,8 +409,10 @@
         }
 
         // Inicializa
-        connectWebSocket();
-        setInterval(refreshDevices, 10000); // Auto-refresh a cada 10s
+        refreshDevices();
+        
+        // Auto-refresh a cada 15 segundos
+        setInterval(refreshDevices, 15000);
     </script>
 </body>
 </html>
