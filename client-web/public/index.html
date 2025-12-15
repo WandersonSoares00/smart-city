@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart City Control</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #667eea;
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: #f0f4ff;
+            border-radius: 20px;
+            font-size: 0.9em;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #10b981;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #5568d3;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .devices-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .device-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .device-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .device-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f4ff;
+        }
+
+        .device-name {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #333;
+        }
+
+        .device-type {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+        }
+
+        .device-info {
+            margin: 10px 0;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .device-state {
+            background: #f0f4ff;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+
+        .device-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .device-actions button {
+            flex: 1;
+            min-width: 100px;
+            padding: 8px 12px;
+            font-size: 0.9em;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .input-group input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+
+        .input-group button {
+            flex: 0 0 auto;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            max-width: 300px;
+            animation: slideIn 0.3s;
+            z-index: 1000;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(400px); }
+            to { transform: translateX(0); }
+        }
+
+        .notification.success {
+            border-left: 4px solid #10b981;
+        }
+
+        .notification.error {
+            border-left: 4px solid #ef4444;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: white;
+        }
+
+        .empty-state h2 {
+            margin-bottom: 10px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: white;
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏙️ Smart City Control Panel</h1>
+            <div class="status">
+                <div class="status-dot"></div>
+                <span id="connectionStatus">Conectando...</span>
+            </div>
+        </header>
+
+        <div class="controls">
+            <button onclick="refreshDevices()">🔄 Atualizar Dispositivos</button>
+        </div>
+
+        <div id="devicesContainer" class="loading">
+            Carregando dispositivos...
+        </div>
+    </div>
+
+    <script>
+        let ws;
+        const notifications = [];
+
+        function connectWebSocket() {
+            ws = new WebSocket(`ws://${window.location.host}`);
+
+            ws.onopen = () => {
+                document.getElementById('connectionStatus').textContent = 'Conectado ao Gateway';
+                showNotification('Conectado ao sistema', 'success');
+                refreshDevices();
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                handleWebSocketMessage(data);
+            };
+
+            ws.onerror = () => {
+                document.getElementById('connectionStatus').textContent = 'Erro de conexão';
+                showNotification('Erro ao conectar com o Gateway', 'error');
+            };
+
+            ws.onclose = () => {
+                document.getElementById('connectionStatus').textContent = 'Desconectado';
+                setTimeout(connectWebSocket, 3000);
+            };
+        }
+
+        function handleWebSocketMessage(data) {
+            if (data.type === 'DEVICE_LIST') {
+                renderDevices(data.devices);
+            } else if (data.type === 'COMMAND_RESPONSE') {
+                showNotification(
+                    data.response.message || 'Comando executado',
+                    data.response.success ? 'success' : 'error'
+                );
+                refreshDevices();
+            } else if (data.type === 'ERROR') {
+                showNotification(data.message, 'error');
+            }
+        }
+
+        function refreshDevices() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'LIST_DEVICES' }));
+            }
+        }
+
+        function renderDevices(devices) {
+            const container = document.getElementById('devicesContainer');
+            
+            if (!devices || devices.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h2>Nenhum dispositivo encontrado</h2>
+                        <p>Aguardando dispositivos se conectarem ao Gateway...</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.className = 'devices-grid';
+            container.innerHTML = devices.map(device => createDeviceCard(device)).join('');
+        }
+
+        function createDeviceCard(device) {
+            const deviceType = device.type.toLowerCase();
+            let actions = '';
+
+            // Ações específicas por tipo de dispositivo
+            if (deviceType.includes('poste')) {
+                actions = `
+                    <button onclick="sendCommand('${device.name}', 'TURN_ON')">🔆 Ligar</button>
+                    <button onclick="sendCommand('${device.name}', 'TURN_OFF')">🌙 Desligar</button>
+                    <div class="input-group">
+                        <input type="number" id="${device.name}-brightness" placeholder="Brilho (0-100)" min="0" max="100">
+                        <button onclick="setBrightness('${device.name}')">💡 Ajustar</button>
+                    </div>
+                `;
+            } else if (deviceType.includes('semaforo')) {
+                actions = `
+                    <button onclick="sendCommand('${device.name}', 'SET_LIGHT', 'RED')">🔴 Vermelho</button>
+                    <button onclick="sendCommand('${device.name}', 'SET_LIGHT', 'YELLOW')">🟡 Amarelo</button>
+                    <button onclick="sendCommand('${device.name}', 'SET_LIGHT', 'GREEN')">🟢 Verde</button>
+                    <button onclick="sendCommand('${device.name}', 'SET_MODE', 'AUTO')">⚙️ Modo Auto</button>
+                `;
+            } else if (deviceType.includes('camera')) {
+                actions = `
+                    <button onclick="sendCommand('${device.name}', 'TURN_ON')">▶️ Ligar</button>
+                    <button onclick="sendCommand('${device.name}', 'TURN_OFF')">⏸️ Desligar</button>
+                    <button onclick="sendCommand('${device.name}', 'SET_RESOLUTION', 'HD')">HD</button>
+                    <button onclick="sendCommand('${device.name}', 'SET_RESOLUTION', '4K')">4K</button>
+                `;
+            } else {
+                actions = `
+                    <button onclick="sendCommand('${device.name}', 'GET_READING')">📊 Ler Dados</button>
+                    <div class="input-group">
+                        <input type="number" id="${device.name}-interval" placeholder="Intervalo (s)">
+                        <button onclick="setInterval('${device.name}')">⏱️ Intervalo</button>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="device-card">
+                    <div class="device-header">
+                        <div class="device-name">${device.name}</div>
+                        <div class="device-type">${device.type}</div>
+                    </div>
+                    <div class="device-info">
+                        📍 ${device.ip}:${device.port}
+                    </div>
+                    <div class="device-state">
+                        Estado: ${device.currentState || 'N/A'}
+                    </div>
+                    <div class="device-actions">
+                        ${actions}
+                    </div>
+                </div>
+            `;
+        }
+
+        function sendCommand(deviceName, action, value = '') {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'SEND_COMMAND',
+                    deviceName,
+                    action,
+                    value
+                }));
+            } else {
+                showNotification('Sem conexão com o Gateway', 'error');
+            }
+        }
+
+        function setBrightness(deviceName) {
+            const input = document.getElementById(`${deviceName}-brightness`);
+            const value = input.value;
+            if (value) {
+                sendCommand(deviceName, 'SET_BRIGHTNESS', value);
+                input.value = '';
+            }
+        }
+
+        function setInterval(deviceName) {
+            const input = document.getElementById(`${deviceName}-interval`);
+            const value = input.value;
+            if (value) {
+                sendCommand(deviceName, 'SET_INTERVAL', value);
+                input.value = '';
+            }
+        }
+
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // Inicializa
+        connectWebSocket();
+        setInterval(refreshDevices, 10000); // Auto-refresh a cada 10s
+    </script>
+</body>
+</html>
