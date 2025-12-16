@@ -42,13 +42,13 @@ function initSocket() {
     });
     
     socket.on('devices-update', (devicesData) => {
-        console.log('Devices update received:', devicesData);
+        devices = devicesData;
         renderDevices();
     });
     
     socket.on('command-response', (response) => {
-        console.log('Command response:', response);
         if (response.success) {
+            showToast('SUCCESS', response.message, 'success');
         } else {
             showToast('ERROR', response.message, 'error');
         }
@@ -70,10 +70,10 @@ function updateConnectionStatus(status, text) {
 // DEVICE RENDERING
 // =============================================
 function renderDevices() {
-    console.log('[renderDevices] Current devices:', devices);
-    console.log('[renderDevices] Current filter:', currentFilter);
+    const grid = document.getElementById('devicesGrid');
     
-    conscurrentFilter !== 'ALL') {
+    let filteredDevices = devices;
+    if (currentFilter !== 'ALL') {
         filteredDevices = devices.filter(device => {
             const type = (device.type || '').toUpperCase();
             if (currentFilter === 'SENSORS') {
@@ -309,11 +309,11 @@ function getDeviceIcon(type) {
 // COMMAND HANDLING
 // =============================================
 function sendQuickCommand(deviceName, action, value) {
-    console.log(`Sending command: ${deviceName} - ${action} - ${value}`);
     socket.emit('send-command', { deviceName, action, value });
     showToast('SENDING', `Command ${action} to ${deviceName}`, 'info');
 }
-tion openCommandModal(deviceName) {
+
+function openCommandModal(deviceName) {
     document.getElementById('modalDeviceName').value = deviceName;
     document.getElementById('modalAction').value = '';
     document.getElementById('modalValue').value = '';
@@ -427,6 +427,5 @@ document.getElementById('commandModal').addEventListener('click', (e) => {
 // INITIALIZATION
 // =============================================
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('Smart City Client Starting');
     initSocket();
 });
