@@ -165,8 +165,8 @@ io.on('connection', (socket) => {
     // Cliente desconectado
     socket.on('disconnect', () => {
         connectedClients--;
-        console.log(`✗ Cliente desconectado [${connectedClients} online]`);
-    
+    });
+});
 
 // Atualização periódica dos dispositivos para todos os clientes
 setInterval(async () => {
