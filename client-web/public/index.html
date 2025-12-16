@@ -3,416 +3,108 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart City Control</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        header {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        h1 {
-            color: #667eea;
-            font-size: 2em;
-            margin-bottom: 10px;
-        }
-
-        .status {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            background: #f0f4ff;
-            border-radius: 20px;
-            font-size: 0.9em;
-        }
-
-        .status-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: #10b981;
-            animation: pulse 2s infinite;
-        }
-
-        .status-dot.error {
-            background: #ef4444;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        .controls {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-
-        button {
-            background: #667eea;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1em;
-            transition: background 0.3s;
-        }
-
-        button:hover {
-            background: #5568d3;
-        }
-
-        button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-
-        .devices-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: 20px;
-        }
-
-        .device-card {
-            background: white;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-
-        .device-header {
-            font-weight: bold;
-            font-size: 1.1em;
-            color: #333;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #f0f4ff;
-        }
-
-        .device-info {
-            margin: 10px 0;
-            padding: 10px;
-            background: #f8f9fa;
-            border-radius: 5px;
-            font-size: 0.9em;
-            color: #666;
-            word-wrap: break-word;
-        }
-
-        .command-section {
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid #e0e0e0;
-        }
-
-        .command-section h3 {
-            font-size: 0.9em;
-            color: #667eea;
-            margin-bottom: 10px;
-        }
-
-        .input-group {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-
-        .input-group input {
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 0.9em;
-        }
-
-        .input-group button {
-            width: 100%;
-        }
-
-        .quick-actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 10px;
-        }
-
-        .quick-actions button {
-            flex: 1;
-            min-width: 80px;
-            padding: 8px 12px;
-            font-size: 0.85em;
-        }
-
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: white;
-            padding: 15px 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            max-width: 300px;
-            animation: slideIn 0.3s;
-            z-index: 1000;
-        }
-
-        @keyframes slideIn {
-            from { transform: translateX(400px); }
-            to { transform: translateX(0); }
-        }
-
-        .notification.success {
-            border-left: 4px solid #10b981;
-        }
-
-        .notification.error {
-            border-left: 4px solid #ef4444;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: white;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: white;
-            font-size: 1.2em;
-        }
-    </style>
+    <title>Smart City - Control Panel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>🏙️ Smart City Control Panel</h1>
-            <div class="status">
-                <div class="status-dot" id="statusDot"></div>
-                <span id="statusText">Sistema inicializado</span>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <h1>SMART CITY</h1>
+                    <p class="subtitle">CONTROL PANEL</p>
+                </div>
+                <div class="connection-status">
+                    <div class="status-indicator" id="statusIndicator">
+                        <span class="status-dot"></span>
+                        <span class="status-text">CONNECTING</span>
+                    </div>
+                    <div class="device-count" id="deviceCount">
+                        <span class="count">0</span>
+                        <span class="label">DEVICES</span>
+                    </div>
+                </div>
             </div>
-        </header>
-
-        <div class="controls">
-            <button onclick="refreshDevices()">🔄 Atualizar Dispositivos</button>
         </div>
+    </header>
 
-        <div id="devicesContainer" class="loading">
-            Carregando dispositivos...
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Controls Bar -->
+            <div class="controls-bar">
+                <button class="btn btn-primary" onclick="refreshDevices()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                    </svg>
+                    REFRESH
+                </button>
+                <div class="filter-group">
+                    <button class="btn btn-filter active" onclick="filterDevices('ALL')">
+                        ALL
+                    </button>
+                    <button class="btn btn-filter" onclick="filterDevices('SENSOR')">
+                        SENSORS
+                    </button>
+                    <button class="btn btn-filter" onclick="filterDevices('ACTUATOR')">
+                        ACTUATORS
+                    </button>
+                </div>
+            </div>
+
+            <!-- Devices Grid -->
+            <div id="deLOADING DEVICES</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Command Modal -->
+    <div id="commandModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>SEND COMMAND</h2>
+                <button class="modal-close" onclick="closeCommandModal()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>DEVICE</label>
+                    <input type="text" id="modalDeviceName" class="form-input" readonly>
+                </div>
+                <div class="form-group">
+                    <label>ACTION</label>
+                    <input type="text" id="modalAction" class="form-input" placeholder="TURN_ON, SET_LIGHT">
+                </div>
+                <div class="form-group">
+                    <label>VALUE (OPTIONAL)</label>
+                    <input type="text" id="modalValue" class="form-input" placeholder="RED, 80">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeCommandModal()">CANCEL</button>
+                <button class="btn btn-primary" onclick="submitCommand()">SEND
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeCommandModal()">Cancelar</button>
+                <button class="btn btn-primary" onclick="submitCommand()">Enviar</button>
+            </div>
         </div>
     </div>
 
-    <script>
-        let devices = [];
-
-        // Atualiza status
-        function setStatus(text, isError = false) {
-            document.getElementById('statusText').textContent = text;
-            const dot = document.getElementById('statusDot');
-            if (isError) {
-                dot.classList.add('error');
-            } else {
-                dot.classList.remove('error');
-            }
-        }
-
-        // Carrega dispositivos
-        async function refreshDevices() {
-            try {
-                setStatus('Consultando dispositivos...');
-                
-                const response = await fetch('/api/devices');
-                const data = await response.json();
-
-                if (data.success) {
-                    devices = data.devices;
-                    renderDevices(devices);
-                    setStatus(`${devices.length} dispositivo(s) conectado(s)`);
-                    showNotification(`${devices.length} dispositivos encontrados`, 'success');
-                } else {
-                    throw new Error(data.error);
-                }
-            } catch (error) {
-                console.error('Erro:', error);
-                setStatus('Erro ao conectar', true);
-                showNotification('Erro: ' + error.message, 'error');
-                renderError(error.message);
-            }
-        }
-
-        // Renderiza dispositivos
-        function renderDevices(devices) {
-            const container = document.getElementById('devicesContainer');
-            
-            if (!devices || devices.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <h2>Nenhum dispositivo encontrado</h2>
-                        <p>Aguardando dispositivos se conectarem ao Gateway...</p>
-                    </div>
-                `;
-                return;
-            }
-
-            container.className = 'devices-grid';
-            container.innerHTML = devices.map((device, index) => `
-                <div class="device-card">
-                    <div class="device-header">
-                        📡 Dispositivo ${index + 1}
-                    </div>
-                    <div class="device-info">
-                        ${device.rawInfo || device.name}
-                    </div>
-                    
-                    <div class="command-section">
-                        <h3>🎮 Enviar Comando</h3>
-                        
-                        <div class="input-group">
-                            <input type="text" 
-                                   id="deviceName-${index}" 
-                                   placeholder="Nome do dispositivo (ex: Poste-Rua-1)"
-                                   value="">
-                            <input type="text" 
-                                   id="action-${index}" 
-                                   placeholder="Ação (ex: TURN_ON, SET_COLOR)"
-                                   value="">
-                            <input type="text" 
-                                   id="value-${index}" 
-                                   placeholder="Valor (ex: RED, 80) - opcional"
-                                   value="">
-                            <button onclick="sendCustomCommand(${index})">
-                                📤 Enviar
-                            </button>
-                        </div>
-                        
-                        <div class="quick-actions">
-                            <button onclick="quickCommand('Poste-Rua-1', 'TURN_ON', '')">
-                                💡 Ligar Poste
-                            </button>
-                            <button onclick="quickCommand('Poste-Rua-1', 'TURN_OFF', '')">
-                                🌙 Desligar Poste
-                            </button>
-                            <button onclick="quickCommand('Semaforo-Centro', 'SET_LIGHT', 'RED')">
-                                🔴 Semáforo RED
-                            </button>
-                            <button onclick="quickCommand('Semaforo-Centro', 'SET_LIGHT', 'GREEN')">
-                                🟢 Semáforo GREEN
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        // Renderiza erro
-        function renderError(message) {
-            const container = document.getElementById('devicesContainer');
-            container.innerHTML = `
-                <div class="empty-state">
-                    <h2>⚠️ Erro de Comunicação</h2>
-                    <p>${message}</p>
-                    <button onclick="refreshDevices()" style="margin-top: 20px; background: white; color: #667eea;">
-                        🔄 Tentar Novamente
-                    </button>
-                </div>
-            `;
-        }
-
-        // Envia comando customizado
-        async function sendCustomCommand(index) {
-            const deviceName = document.getElementById(`deviceName-${index}`).value;
-            const action = document.getElementById(`action-${index}`).value;
-            const value = document.getElementById(`value-${index}`).value;
-
-            if (!action) {
-                showNotification('Por favor, informe a ação', 'error');
-                return;
-            }
-
-            await sendCommand(deviceName, action, value);
-        }
-
-        // Comando rápido
-        async function quickCommand(deviceName, action, value) {
-            await sendCommand(deviceName, action, value);
-        }
-
-        // Envia comando para o Gateway
-        async function sendCommand(deviceName, action, value) {
-            try {
-                setStatus('Enviando comando...');
-                
-                const response = await fetch('/api/command', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ deviceName, action, value })
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    setStatus('Comando executado');
-                    showNotification(data.result.message, data.result.success ? 'success' : 'error');
-                    
-                    // Atualiza lista se foi LIST
-                    if (action === 'LIST') {
-                        setTimeout(refreshDevices, 500);
-                    }
-                } else {
-                    throw new Error(data.error);
-                }
-            } catch (error) {
-                console.error('Erro:', error);
-                setStatus('Erro ao enviar comando', true);
-                showNotification('Erro: ' + error.message, 'error');
-            }
-        }
-
-        // Mostra notificação
-        function showNotification(message, type = 'success') {
-            const notification = document.createElement('div');
-            notification.className = `notification ${type}`;
-            notification.textContent = message;
-            document.body.appendChild(notification);
-
-            setTimeout(() => {
-                notification.remove();
-            }, 3000);
-        }
-
-        // Inicializa
-        refreshDevices();
-        
-        // Auto-refresh a cada 15 segundos
-        setInterval(refreshDevices, 15000);
-    </script>
+    <!-- Socket.IO -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
