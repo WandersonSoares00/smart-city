@@ -167,20 +167,13 @@ class Gateway
 
         $server = new SocketServer("0.0.0.0:$port", [], $this->loop);
 
-        echo "[TCP] Servidor TCP na porta $port\n";
-
         $server->on('connection', function ($conn) {
-            echo "[TCP] Cliente conectado.\n";
-
             $conn->on('data', function ($data) use ($conn) {
                 $cmd = trim($data);
-                
-                echo "[TCP] Comando recebido: '{$cmd}'\n";
 
                 if ($cmd === "LIST") {
                     $devices = $this->deviceRegistry->listDevices();
                     $json = json_encode($devices, JSON_PRETTY_PRINT) . "\n";
-                    echo "[TCP] Enviando lista com " . count($devices) . " dispositivo(s)\n";
                     $conn->write($json);
                     return;
                 }

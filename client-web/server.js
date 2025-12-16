@@ -74,15 +74,11 @@ async function listDevices() {
     try {
         const response = await sendToGateway('LIST');
         
-        console.log('[DEBUG] Resposta do gateway:', JSON.stringify(response));
-        
         if (Array.isArray(response)) {
             lastDeviceList = response;
-            console.log(`[DEBUG] ${response.length} dispositivo(s) encontrado(s)`);
             return response;
         }
         
-        console.log('[DEBUG] Resposta não é array:', typeof response);
         return [];
     } catch (error) {
         console.error('Erro ao listar dispositivos:', error.message);
@@ -147,7 +143,6 @@ app.post('/api/command', async (req, res) => {
 // WebSocket - Gerenciamento de conexões
 io.on('connection', (socket) => {
     connectedClients++;
-    console.log(`✓ Cliente conectado [${connectedClients} online]`);
     
     // Envia lista inicial de dispositivos
     listDevices().then(devices => {
@@ -171,8 +166,7 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => {
         connectedClients--;
         console.log(`✗ Cliente desconectado [${connectedClients} online]`);
-    });
-});
+    
 
 // Atualização periódica dos dispositivos para todos os clientes
 setInterval(async () => {

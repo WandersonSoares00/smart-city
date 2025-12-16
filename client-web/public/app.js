@@ -34,26 +34,21 @@ function initSocket() {
     socket = io();
     
     socket.on('connect', () => {
-        console.log('Connected to server');
         updateConnectionStatus('connected', 'CONNECTED');
     });
     
     socket.on('disconnect', () => {
-        console.log('Disconnected from server');
         updateConnectionStatus('error', 'DISCONNECTED');
     });
     
     socket.on('devices-update', (devicesData) => {
         console.log('Devices update received:', devicesData);
-        console.log('Number of devices:', devicesData ? devicesData.length : 0);
-        devices = devicesData;
         renderDevices();
     });
     
     socket.on('command-response', (response) => {
         console.log('Command response:', response);
         if (response.success) {
-            showToast('SUCCESS', response.message, 'success');
         } else {
             showToast('ERROR', response.message, 'error');
         }
@@ -78,10 +73,7 @@ function renderDevices() {
     console.log('[renderDevices] Current devices:', devices);
     console.log('[renderDevices] Current filter:', currentFilter);
     
-    const grid = document.getElementById('devicesGrid');
-    
-    let filteredDevices = devices;
-    if (currentFilter !== 'ALL') {
+    conscurrentFilter !== 'ALL') {
         filteredDevices = devices.filter(device => {
             const type = (device.type || '').toUpperCase();
             if (currentFilter === 'SENSORS') {
@@ -321,8 +313,7 @@ function sendQuickCommand(deviceName, action, value) {
     socket.emit('send-command', { deviceName, action, value });
     showToast('SENDING', `Command ${action} to ${deviceName}`, 'info');
 }
-
-function openCommandModal(deviceName) {
+tion openCommandModal(deviceName) {
     document.getElementById('modalDeviceName').value = deviceName;
     document.getElementById('modalAction').value = '';
     document.getElementById('modalValue').value = '';

@@ -58,13 +58,9 @@ abstract class BaseDevice
      */
     public function start(): void
     {
-        echo "[{$this->type}] Iniciando {$this->name} em {$this->ip}:{$this->port}\n";
-
         $this->listenForDiscovery();
         $this->startTcpServer();
         $this->onStart();
-
-        echo "[{$this->type}] ✓ Aguardando comandos...\n\n";
 
         $this->loop->run();
     }
@@ -82,8 +78,6 @@ abstract class BaseDevice
      */
     protected function listenForDiscovery(): void
     {
-        echo "[{$this->type}] ⚠ Multicast desabilitado - usando heartbeat periódico\n";
-        
         // Envia informações imediatamente ao iniciar
         $this->sendDeviceInfo();
         
@@ -134,7 +128,6 @@ abstract class BaseDevice
                     echo "[{$this->type}] Erro ao decodificar comando\n";
                     return;
                 }
-
                 $response = $this->handleCommand($cmd);
                 $conn->write($response->serializeToString());
                 
