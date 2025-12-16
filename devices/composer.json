@@ -12,10 +12,11 @@
     },
     "autoload": {
         "psr-4": {
-            "Devices\\": "src/"
+            "Devices\\": "src/",
+            "GPBMetadata\\": "src/protobuf/GPBMetadata/"
         },
         "classmap": [
-            "../gateway/src/protobuf/"
+            "src/protobuf/"
         ]
     },
     "scripts": {

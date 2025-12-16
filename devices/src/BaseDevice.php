@@ -50,7 +50,7 @@ abstract class BaseDevice
      */
     protected function getLocalIp(): string
     {
-        return gethostbyname(gethostname()) ?: '127.0.0.1';
+        return $_ENV['LOCAL_IP'] ?? gethostbyname(gethostname()) ?? '127.0.0.1';
     }
 
     /**
@@ -82,15 +82,14 @@ abstract class BaseDevice
      */
     protected function listenForDiscovery(): void
     {
-        $factory = new Factory($this->loop);
-
-        $factory->createServer("0.0.0.0:{$this->multicastPort}")->then(function ($server) {
-            $server->on('message', function ($msg, $addr) {
-                if (trim($msg) === 'DISCOVERY') {
-                    echo "[{$this->type}] Descoberta recebida de {$addr}\n";
-                    $this->sendDeviceInfo();
-                }
-            });
+        echo "[{$this->type}] ⚠ Multicast desabilitado - usando heartbeat periódico\n";
+        
+        // Envia informações imediatamente ao iniciar
+        $this->sendDeviceInfo();
+        
+        // Envia heartbeat a cada 10 segundos para manter o dispositivo ativo
+        $this->loop->addPeriodicTimer(10, function () {
+            $this->sendDeviceInfo();
         });
     }
 
@@ -107,7 +106,9 @@ abstract class BaseDevice
         $info->setCurrentState($this->currentState);
 
         $binary = $info->serializeToString();
-        $address = "{$this->multicastGroup}:{$this->gatewayResponsePort}";
+        // Envia resposta diretamente para o gateway (localhost em desenvolvimento)
+        $gatewayHost = $_ENV['GATEWAY_HOST'] ?? '127.0.0.1';
+        $address = "{$gatewayHost}:{$this->gatewayResponsePort}";
 
         $sock = @stream_socket_client("udp://{$address}", $errno, $errstr);
         if ($sock) {
@@ -136,6 +137,9 @@ abstract class BaseDevice
 
                 $response = $this->handleCommand($cmd);
                 $conn->write($response->serializeToString());
+                
+                // Envia heartbeat imediatamente após processar comando para atualizar estado
+                $this->sendDeviceInfo();
             });
         });
     }

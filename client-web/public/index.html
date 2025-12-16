@@ -48,17 +48,20 @@
                     <button class="btn btn-filter active" onclick="filterDevices('ALL')">
                         ALL
                     </button>
-                    <button class="btn btn-filter" onclick="filterDevices('SENSOR')">
+                    <button class="btn btn-filter" onclick="filterDevices('SENSORS')">
                         SENSORS
                     </button>
-                    <button class="btn btn-filter" onclick="filterDevices('ACTUATOR')">
+                    <button class="btn btn-filter" onclick="filterDevices('ACTUATORS')">
                         ACTUATORS
                     </button>
                 </div>
             </div>
 
             <!-- Devices Grid -->
-            <div id="deLOADING DEVICES</p>
+            <div id="devicesGrid" class="devices-grid">
+                <div class="empty-state">
+                    <h2>LOADING DEVICES</h2>
+                    <p>CONNECTING TO GATEWAY</p>
                 </div>
             </div>
         </div>
@@ -95,10 +98,7 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeCommandModal()">CANCEL</button>
-                <button class="btn btn-primary" onclick="submitCommand()">SEND
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeCommandModal()">Cancelar</button>
-                <button class="btn btn-primary" onclick="submitCommand()">Enviar</button>
+                <button class="btn btn-primary" onclick="submitCommand()">SEND</button>
             </div>
         </div>
     </div>

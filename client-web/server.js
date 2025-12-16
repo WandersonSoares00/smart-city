@@ -9,8 +9,8 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIO(server);
 
-const GATEWAY_HOST = process.env.GATEWAY_HOST || 'localhost';
-const GATEWAY_PORT = parseInt(process.env.GATEWAY_PORT || '8000');
+const GATEWAY_HOST = process.env.GATEWAY_HOST || '127.0.0.1';
+const GATEWAY_PORT = parseInt(process.env.GATEWAY_PORT || '7000');
 
 let Command, DeviceList, DeviceInfo;
 let connectedClients = 0;
@@ -74,11 +74,15 @@ async function listDevices() {
     try {
         const response = await sendToGateway('LIST');
         
+        console.log('[DEBUG] Resposta do gateway:', JSON.stringify(response));
+        
         if (Array.isArray(response)) {
             lastDeviceList = response;
+            console.log(`[DEBUG] ${response.length} dispositivo(s) encontrado(s)`);
             return response;
         }
         
+        console.log('[DEBUG] Resposta não é array:', typeof response);
         return [];
     } catch (error) {
         console.error('Erro ao listar dispositivos:', error.message);

@@ -44,7 +44,8 @@ function initSocket() {
     });
     
     socket.on('devices-update', (devicesData) => {
-        console.log('Devices update:', devicesData);
+        console.log('Devices update received:', devicesData);
+        console.log('Number of devices:', devicesData ? devicesData.length : 0);
         devices = devicesData;
         renderDevices();
     });
@@ -74,15 +75,18 @@ function updateConnectionStatus(status, text) {
 // DEVICE RENDERING
 // =============================================
 function renderDevices() {
+    console.log('[renderDevices] Current devices:', devices);
+    console.log('[renderDevices] Current filter:', currentFilter);
+    
     const grid = document.getElementById('devicesGrid');
     
     let filteredDevices = devices;
     if (currentFilter !== 'ALL') {
         filteredDevices = devices.filter(device => {
             const type = (device.type || '').toUpperCase();
-            if (currentFilter === 'SENSOR') {
+            if (currentFilter === 'SENSORS') {
                 return type.includes('SENSOR');
-            } else if (currentFilter === 'ACTUATOR') {
+            } else if (currentFilter === 'ACTUATORS') {
                 return !type.includes('SENSOR');
             }
             return true;

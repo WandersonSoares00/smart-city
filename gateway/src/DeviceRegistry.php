@@ -8,7 +8,15 @@ class DeviceRegistry
 
     public function addDevice(Device $device)
     {
-        $this->devices[$device->name] = $device;
+        if (isset($this->devices[$device->name])) {
+            // Dispositivo já existe, atualiza com novo estado
+            $existing = $this->devices[$device->name];
+            // Sincroniza propriedades do novo dispositivo
+            $existing->currentState = $device->currentState;
+            $existing->updateLastSeen();
+        } else {
+            $this->devices[$device->name] = $device;
+        }
     }
 
     public function getDevice(string $name)
@@ -20,11 +28,25 @@ class DeviceRegistry
     {
         if (isset($this->devices[$sensor])) {
             $this->devices[$sensor]->$type = $value;
+            $this->devices[$sensor]->updateLastSeen();
         }
+    }
+
+    public function removeInactiveDevices($timeout = 30): int
+    {
+        $removed = 0;
+        foreach ($this->devices as $name => $device) {
+            if (!$device->isActive($timeout)) {
+                echo "[REGISTRY] Removendo dispositivo inativo: {$name}\n";
+                unset($this->devices[$name]);
+                $removed++;
+            }
+        }
+        return $removed;
     }
 
     public function listDevices(): array
     {
-        return array_map(fn($device) => $device->toArray(), $this->devices);
+        return array_values(array_map(fn($device) => $device->toArray(), $this->devices));
     }
 }

@@ -37,6 +37,7 @@ class Gateway
         $this->startDiscoveryResponseListener();
         $this->startSensorUdpListener();
         $this->startTcpServer();
+        $this->startInactiveDeviceCleanup();
 
         echo "[GATEWAY] Loop ativo...\n";
 
@@ -46,8 +47,20 @@ class Gateway
     private function startPeriodicDiscovery() : void
     {
         $this->loop->addPeriodicTimer(5, function () {
-            echo "[DISCOVERY] Broadcast multicast...\n";
-            BroadcastDiscovery::send("$this->group", $this->port, "DISCOVERY");
+            echo "[DISCOVERY] Broadcast multicast para {$this->group}:{$this->port}...\n";
+            BroadcastDiscovery::send($this->group, $this->port, "DISCOVERY");
+        });
+    }
+
+    private function startInactiveDeviceCleanup(): void
+    {
+        // Remove dispositivos inativos a cada 5 segundos (mais responsivo)
+        $this->loop->addPeriodicTimer(5, function () {
+            // Considera inativo após 15 segundos sem heartbeat
+            $removed = $this->deviceRegistry->removeInactiveDevices(15);
+            if ($removed > 0) {
+                echo "[CLEANUP] {$removed} dispositivo(s) inativo(s) removido(s)\n";
+            }
         });
     }
 
@@ -161,9 +174,14 @@ class Gateway
 
             $conn->on('data', function ($data) use ($conn) {
                 $cmd = trim($data);
+                
+                echo "[TCP] Comando recebido: '{$cmd}'\n";
 
                 if ($cmd === "LIST") {
-                    $conn->write(json_encode($this->deviceRegistry->listDevices(), JSON_PRETTY_PRINT) . "\n");
+                    $devices = $this->deviceRegistry->listDevices();
+                    $json = json_encode($devices, JSON_PRETTY_PRINT) . "\n";
+                    echo "[TCP] Enviando lista com " . count($devices) . " dispositivo(s)\n";
+                    $conn->write($json);
                     return;
                 }
 

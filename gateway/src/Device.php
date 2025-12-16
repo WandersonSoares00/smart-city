@@ -9,6 +9,7 @@ class Device
     private $ip;
     private $port;
     private $currentState;
+    private $lastSeen;
 
     private $sensorData = [];
     public function __construct($name, $type, $ip, $port, $currentState)
@@ -19,10 +20,16 @@ class Device
         $this->port = $port;
         $this->currentState = $currentState;
         $this->sensorData = [];
+        $this->lastSeen = time();
     }
 
     public function __set($property, $value)
     {
+        if ($property === 'currentState') {
+            $this->currentState = $value;
+            return;
+        }
+        
         if (property_exists($this, $property)) {
             $this->$property = $value;
         }
@@ -48,6 +55,21 @@ class Device
             $this->port,
             $this->currentState
         );
+    }
+
+    public function updateLastSeen()
+    {
+        $this->lastSeen = time();
+    }
+
+    public function getLastSeen()
+    {
+        return $this->lastSeen;
+    }
+
+    public function isActive($timeout = 30)
+    {
+        return (time() - $this->lastSeen) < $timeout;
     }
 
     public function toArray()

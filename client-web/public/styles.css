@@ -261,9 +261,14 @@ body {
 .device-card:hover .device-title h3,
 .device-card:hover .device-type,
 .device-card:hover .info-label,
-.device-card:hover .info-value,
-.device-card:hover .device-badge {
+.device-card:hover .info-value {
     color: var(--black);
+}
+
+.device-card:hover .device-badge {
+    color: var(--white);
+    background: var(--black);
+    border-color: var(--black);
 }
 
 .device-card:hover .info-row {
