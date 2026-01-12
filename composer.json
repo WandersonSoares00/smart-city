@@ -3,6 +3,7 @@
         "phpunit/phpunit": "^12.5"
     },
     "require": {
-        "google/protobuf": "^4.33"
+        "google/protobuf": "^4.33",
+        "aws/aws-sdk-php": "^3.369"
     }
 }

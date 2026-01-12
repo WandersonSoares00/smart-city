@@ -37,7 +37,7 @@ class Gateway
         $this->startDiscoveryResponseListener();
         $this->startSensorUdpListener();
         $this->startTcpServer();
-        $this->startInactiveDeviceCleanup();
+        //$this->startInactiveDeviceCleanup();
 
         echo "[GATEWAY] Loop ativo...\n";
 
@@ -47,11 +47,12 @@ class Gateway
     private function startPeriodicDiscovery() : void
     {
         $this->loop->addPeriodicTimer(5, function () {
-            echo "[DISCOVERY] Broadcast multicast para {$this->group}:{$this->port}...\n";
+            echo "[DISCOVERY] Broadcast para {$this->group}:{$this->port}...\n";
             BroadcastDiscovery::send($this->group, $this->port, "DISCOVERY");
         });
     }
 
+    /*
     private function startInactiveDeviceCleanup(): void
     {
         // Remove dispositivos inativos a cada 5 segundos (mais responsivo)
@@ -63,14 +64,15 @@ class Gateway
             }
         });
     }
+    */
 
-    private function startDiscoveryResponseListener(): void
+    private function  startDiscoveryResponseListener(): void
     {
         $factory = new Factory($this->loop);
 
         $factory->createServer("0.0.0.0:{$this->response_port}")->then(function ($server) {
 
-            echo "[DISCOVERY] Aguardando respostas dos dispositivos...\n";
+            echo "[DISCOVERY] Aguardando respostas dos dispositivos na porta {$this->response_port}...\n";
 
             $server->on('message', function ($msg, $addr) {
 
@@ -167,8 +169,10 @@ class Gateway
 
         $server = new SocketServer("0.0.0.0:$port", [], $this->loop);
 
-        $server->on('connection', function ($conn) {
-            $conn->on('data', function ($data) use ($conn) {
+        $dynamo = new DynamoLogger();
+
+        $server->on('connection', function ($conn) use ($dynamo) {
+            $conn->on('data', function ($data) use ($conn, $dynamo) {
                 $cmd = trim($data);
 
                 if ($cmd === "LIST") {
@@ -205,13 +209,51 @@ class Gateway
                     $command->setAction($action);
                     $command->setValue($value);
 
-                    $this->sendCommandToDevice($device, $command, function (CommandResponse $resp) use ($conn) {
+                    $this->sendCommandToDevice($device, $command, function (CommandResponse $resp) use ($action, $conn) {
                         $conn->write(json_encode([
                             "device"  => $resp->getDeviceName(),
                             "success" => $resp->getSuccess(),
                             "message" => $resp->getMessage()
                         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . "\n");
+
+                        if ($action === "TAKE_SNAPSHOT") {
+                            $url = $resp->getMessage();
+
+                            try {
+                                $imageData = $this->downloadImage($url);
+
+                                try {
+                                    $minio = new MinioClient();
+                                    $filename = sprintf("%s_%d.jpg", $resp->getDeviceName(), time());
+                                    
+                                    $minioUrl = $minio->upload($filename, $imageData);
+
+                                    echo "[SNAPSHOT] Imagem salva em MinIO: $minioUrl\n";
+                                    
+                                } catch (\Exception $e) {
+                                    echo "[SNAPSHOT] Falha ao enviar imagem para MinIO: " . $e->getMessage() . "\n";
+                                }
+
+                            } catch (\Exception $e) {
+                                $conn->write("ERROR: " . $e->getMessage() . "\n");
+                            }
+                        }
+                    
                     });
+                    
+                    try {
+                        $dynamo->logCommand([
+                            'device'    => $deviceName,
+                            'timestamp' => (new \DateTime())->format(DATE_ATOM),
+                            'source'    => 'frontend',
+                            'action'    => $action,
+                            'value'     => $value,
+                            'status'    => 'SENT',
+                            'metadata'  => null
+                        ]);
+                    } catch (\Exception $e) {
+                        echo "[DYNAMO] Falha ao registrar comando: " . $e->getMessage() . "\n";
+                    }
 
                     return;
                 }
@@ -241,6 +283,20 @@ class Gateway
                             "message" => $resp->getMessage()
                         ]) . "\n");
                     });
+                    
+                    try {
+                        $dynamo->logCommand([
+                            'device'    => $deviceName,
+                            'timestamp' => (new \DateTime())->format(DATE_ATOM),
+                            'source'    => 'frontend',
+                            'action'    => 'SET',
+                            'value'     => $color,
+                            'status'    => 'SENT',
+                            'metadata'  => null
+                        ]);
+                    } catch (\Exception $e) {
+                        echo "[DYNAMO] Falha ao registrar comando: " . $e->getMessage() . "\n";
+                    }
 
                     return;
                 }
@@ -288,7 +344,28 @@ HELP;
                     return;
                 }
 
-                $conn->write("Comando inválido. Digite HELP para ver comandos disponíveis.\n");            });
+                $conn->write(json_encode([
+                    'status'  => 'error',
+                    'error'   => 'INVALID_COMMAND',
+                    'message' => 'Comando inválido',
+                    'help'    => ['LIST', 'COMMAND', 'STATUS']
+                ], JSON_UNESCAPED_UNICODE) . "\n");
+            });
         });
+    }
+
+    private function downloadImage(string $url): string
+    {
+        $context = stream_context_create([
+            'http' => ['timeout' => 5]
+        ]);
+    
+        $data = @file_get_contents($url, false, $context);
+    
+        if ($data === false) {
+            throw new \RuntimeException("Falha ao baixar imagem");
+        }
+    
+        return $data;
     }
 }

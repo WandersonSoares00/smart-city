@@ -1,0 +1,137 @@
+
+x-device-env: &device-env
+  MULTICAST_GROUP: 239.0.0.1
+  MULTICAST_PORT: 5000
+  RESPONSE_PORT: 5001
+  SENSOR_UDP_PORT: 6000
+  GATEWAY_HOST: gateway
+  GATEWAY_TCP_PORT: 7000
+
+x-device-base: &device-base
+  depends_on:
+    - gateway
+  networks:
+    - smartcity
+
+services:
+
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: smart_city
+      MYSQL_USER: app
+      MYSQL_PASSWORD: app
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database:/docker-entrypoint-initdb.d
+    networks:
+      - smartcity
+
+  minio:
+    image: minio/minio
+    container_name: minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - smartcity
+
+  gateway:
+    build:
+      context: ./gateway
+    container_name: gateway
+    restart: unless-stopped
+    environment:
+      PORT: 7000
+
+      MULTICAST_GROUP: 239.0.0.1
+      MULTICAST_PORT: 5000
+      RESPONSE_PORT: 5001
+      SENSOR_UDP_PORT: 6000
+      GATEWAY_TCP_PORT: 7000
+
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: smart_city
+      MYSQL_USER: app
+      MYSQL_PASSWORD: app
+
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_KEY: minio
+      MINIO_SECRET: minio123
+      MINIO_BUCKET: snapshots
+
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      DYNAMODB_TABLE: device_actions
+    ports:
+      - "7000:7000"
+    depends_on:
+      - mysql
+      - minio
+    networks:
+      - smartcity
+
+  temperature-sensor:
+    build:
+      context: ./devices
+      dockerfile: temperature-sensor/Dockerfile
+    container_name: temperature-sensor
+    environment:
+      <<: *device-env
+      DEVICE_TCP_PORT: 7104
+    <<: *device-base
+
+  camera:
+    build:
+      context: ./devices
+      dockerfile: camera/Dockerfile
+    container_name: camera
+    environment:
+      <<: *device-env
+      DEVICE_TCP_PORT: 7103
+    <<: *device-base
+
+  traffic-light:
+    build:
+      context: ./devices
+      dockerfile: traffic-light/Dockerfile
+    container_name: traffic-light
+    environment:
+      <<: *device-env
+      DEVICE_TCP_PORT: 7102
+    <<: *device-base
+
+  client-web:
+    build: ./client-web
+    container_name: client-web
+    environment:
+      PORT: 3000
+      GATEWAY_HOST: gateway
+      GATEWAY_PORT: 7000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - gateway
+    networks:
+      - smartcity
+
+networks:
+  smartcity:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  minio_data:

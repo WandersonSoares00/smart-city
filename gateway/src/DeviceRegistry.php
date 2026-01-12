@@ -2,51 +2,92 @@
 
 namespace Gateway;
 
+use PDO;
+
 class DeviceRegistry
 {
-    private $devices = [];
+    private PDO $db;
 
-    public function addDevice(Device $device)
+    public function __construct()
     {
-        if (isset($this->devices[$device->name])) {
-            // Dispositivo já existe, atualiza com novo estado
-            $existing = $this->devices[$device->name];
-            // Sincroniza propriedades do novo dispositivo
-            $existing->currentState = $device->currentState;
-            $existing->updateLastSeen();
-        } else {
-            $this->devices[$device->name] = $device;
-        }
+        $this->db = Database::getConnection();
     }
 
-    public function getDevice(string $name)
+    public function addDevice(Device $device): void
     {
-        return $this->devices[$name] ?? null;
+        $stmt = $this->db->prepare("
+            INSERT INTO devices (name, type, ip, port, current_state)
+            VALUES (?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+                ip = VALUES(ip),
+                port = VALUES(port),
+                current_state = VALUES(current_state)
+        ");
+
+        $stmt->execute([
+            $device->name,
+            $device->type,
+            $device->ip,
+            $device->port,
+            $device->currentState
+        ]);
     }
 
-    public function updateSensorData(string $sensor, string $type, string $value)
+    public function getDevice(string $name): ?Device
     {
-        if (isset($this->devices[$sensor])) {
-            $this->devices[$sensor]->$type = $value;
-            $this->devices[$sensor]->updateLastSeen();
+        $stmt = $this->db->prepare("SELECT * FROM devices WHERE name = ?");
+        $stmt->execute([$name]);
+
+        $data = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (! $data) {
+            return null;
         }
+
+        $device = new Device(
+            $data['name'],
+            $data['type'],
+            $data['ip'],
+            (int) $data['port'],
+            $data['current_state']
+        );
+
+        $device->id = (int) $data['id'];
+        $device->current_state = $data['current_state'];
+        $device->state_value  = $data['state_value'];
+
+        return $device;
     }
 
-    public function removeInactiveDevices($timeout = 30): int
+    /**
+     * Atualiza estado atual do dispositivo (sensor ou atuador)
+     */
+    public function updateSensorData(string $deviceName, string $state, string $value): void
     {
-        $removed = 0;
-        foreach ($this->devices as $name => $device) {
-            if (!$device->isActive($timeout)) {
-                echo "[REGISTRY] Removendo dispositivo inativo: {$name}\n";
-                unset($this->devices[$name]);
-                $removed++;
-            }
-        }
-        return $removed;
+        $stmt = $this->db->prepare("
+            UPDATE devices
+            SET current_state = ?, state_value = ?
+            WHERE name = ?
+        ");
+
+        $stmt->execute([$state, $value, $deviceName]);
     }
 
     public function listDevices(): array
     {
-        return array_values(array_map(fn($device) => $device->toArray(), $this->devices));
+        return $this->db
+            ->query("
+                SELECT
+                    id,
+                    name,
+                    type,
+                    location,
+                    ip,
+                    port,
+                    current_state,
+                    state_value,
+                    created_at
+                FROM devices
+            ")
+            ->fetchAll(PDO::FETCH_ASSOC);
     }
 }

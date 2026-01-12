@@ -8,14 +8,14 @@
  * Exemplo: php bin/run-traffic-light.php "Semaforo-Av-Principal" 7102
  */
 
-require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/vendor/autoload.php';
 
 use Dotenv\Dotenv;
 use Devices\Actuators\TrafficLight;
 
 // Carrega variáveis de ambiente
 $dotenv = Dotenv::createImmutable(__DIR__ . '/../..');
-$dotenv->load();
+$dotenv->safeLoad(); 
 
 // Parâmetros
 $name = $argv[1] ?? 'TrafficLight-' . mt_rand(1000, 9999);

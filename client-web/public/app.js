@@ -224,9 +224,13 @@ function renderDeviceActions(device) {
                 <button class="btn-action" onclick="sendQuickCommand('${device.name}', 'SET_RESOLUTION', '1080p')">
                     1080P
                 </button>
+                <button class="btn-action" onclick="sendQuickCommand('${device.name}', 'TAKE_SNAPSHOT', '')">
+                    SNAPSHOT
+                </button>
                 <button class="btn-action" onclick="openCommandModal('${device.name}')">
                     ADVANCED
                 </button>
+                
             </div>
         `;
     }

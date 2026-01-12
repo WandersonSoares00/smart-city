@@ -8,14 +8,14 @@
  * Exemplo: php bin/run-camera.php "Camera-Praca-Central" 7103
  */
 
-require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/vendor/autoload.php';
 
 use Dotenv\Dotenv;
 use Devices\Actuators\Camera;
 
 // Carrega variáveis de ambiente
 $dotenv = Dotenv::createImmutable(__DIR__ . '/../..');
-$dotenv->load();
+$dotenv->safeLoad(); 
 
 // Parâmetros
 $name = $argv[1] ?? 'Camera-' . mt_rand(1000, 9999);

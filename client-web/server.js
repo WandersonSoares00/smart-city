@@ -50,6 +50,7 @@ function sendToGateway(message) {
                     socket.end();
                     resolve(response);
                 } catch (error) {
+                    console.error('Conteúdo bruto do buffer que falhou:', buffer);
                     socket.end();
                     reject(new Error('Erro ao parsear resposta: ' + error.message));
                 }
@@ -57,6 +58,7 @@ function sendToGateway(message) {
         });
 
         socket.on('error', (error) => {
+            console.error(`Falha ao conectar em ${GATEWAY_HOST}:${GATEWAY_PORT}`);
             reject(error);
         });
 

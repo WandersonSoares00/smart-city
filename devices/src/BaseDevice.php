@@ -9,6 +9,7 @@ use React\Socket\SocketServer;
 use DeviceInfo;
 use Command;
 use CommandResponse;
+use SensorData;
 
 /**
  * Classe base para todos os dispositivos da cidade inteligente.
@@ -31,6 +32,10 @@ abstract class BaseDevice
     protected int $multicastPort;
     protected int $gatewayResponsePort;
 
+    protected int $gatewayDiscoveryPort;
+
+    protected bool $registred = false;
+
     public function __construct(string $name, string $type, int $port, string $initialState = 'OFF')
     {
         $this->loop = Loop::get();
@@ -42,7 +47,8 @@ abstract class BaseDevice
 
         $this->multicastGroup = $_ENV['MULTICAST_GROUP'] ?? '239.0.0.1';
         $this->multicastPort = (int) ($_ENV['MULTICAST_PORT'] ?? 5000);
-        $this->gatewayResponsePort = (int) ($_ENV['RESPONSE_PORT'] ?? 5000);
+        $this->gatewayDiscoveryPort = (int) ($_ENV['RESPONSE_PORT'] ?? 5000);
+        $this->gatewayResponsePort = (int) ($_ENV['SENSOR_UDP_PORT'] ?? 6000);
     }
 
     /**
@@ -70,7 +76,6 @@ abstract class BaseDevice
      */
     protected function onStart(): void
     {
-        // Pode ser sobrescrito pelas classes filhas
     }
 
     /**
@@ -78,13 +83,19 @@ abstract class BaseDevice
      */
     protected function listenForDiscovery(): void
     {
+        if ($this->registred) {
+            return;
+        }
+
         // Envia informações imediatamente ao iniciar
         $this->sendDeviceInfo();
-        
+
+        $this->registred = true;
+
         // Envia heartbeat a cada 10 segundos para manter o dispositivo ativo
-        $this->loop->addPeriodicTimer(10, function () {
-            $this->sendDeviceInfo();
-        });
+        //$this->loop->addPeriodicTimer(10, function () {
+        //    $this->sendDeviceInfo();
+        //});
     }
 
     /**
@@ -102,7 +113,7 @@ abstract class BaseDevice
         $binary = $info->serializeToString();
         // Envia resposta diretamente para o gateway (localhost em desenvolvimento)
         $gatewayHost = $_ENV['GATEWAY_HOST'] ?? '127.0.0.1';
-        $address = "{$gatewayHost}:{$this->gatewayResponsePort}";
+        $address = "{$gatewayHost}:{$this->gatewayDiscoveryPort}";
 
         $sock = @stream_socket_client("udp://{$address}", $errno, $errstr);
         if ($sock) {
@@ -117,7 +128,7 @@ abstract class BaseDevice
     protected function startTcpServer(): void
     {
         $server = new SocketServer("0.0.0.0:{$this->port}", [], $this->loop);
-
+        
         $server->on('connection', function ($conn) {
             $conn->on('data', function ($data) use ($conn) {
                 $cmd = new Command();
@@ -131,8 +142,21 @@ abstract class BaseDevice
                 $response = $this->handleCommand($cmd);
                 $conn->write($response->serializeToString());
                 
-                // Envia heartbeat imediatamente após processar comando para atualizar estado
-                $this->sendDeviceInfo();
+                $data = new SensorData();
+                $data->setDeviceName($this->name);
+                $data->setType($this->type);
+                $data->setValue($this->currentState);
+
+                $bin = $data->serializeToString();
+
+                $gatewayHost = $_ENV['GATEWAY_HOST'] ?? '127.0.0.1';
+                $address = "{$gatewayHost}:{$this->gatewayResponsePort}";
+
+                $sock = @stream_socket_client("udp://{$address}", $errno, $errstr);
+                if ($sock) {
+                    fwrite($sock, $bin);
+                    fclose($sock);
+                }
             });
         });
     }

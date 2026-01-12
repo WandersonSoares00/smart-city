@@ -1,0 +1,302 @@
+Attaching to camera, client-web, gateway, minio, mysql, temperature-sensor, traffic-light
+mysql  | 2026-01-12 00:20:15+00:00 [Note] [Entrypoint]: Entrypoint script for MySQL Server 8.0.44-1.el9 started.
+gateway  | [DB] Aguardando MySQL (1/15)...
+mysql    | 2026-01-12 00:20:15+00:00 [Note] [Entrypoint]: Switching to dedicated user 'mysql'
+mysql    | 2026-01-12 00:20:15+00:00 [Note] [Entrypoint]: Entrypoint script for MySQL Server 8.0.44-1.el9 started.
+minio    | MinIO Object Storage Server
+minio    | Copyright: 2015-2026 MinIO, Inc.
+minio    | License: GNU AGPLv3 - https://www.gnu.org/licenses/agpl-3.0.html
+minio    | Version: RELEASE.2025-09-07T16-13-09Z (go1.24.6 linux/amd64)
+minio    | 
+minio    | API: http://172.18.0.2:9000  http://127.0.0.1:9000 
+minio    | WebUI: http://172.18.0.2:9001 http://127.0.0.1:9001  
+minio    | 
+minio    | Docs: https://docs.min.io
+camera   | ============================================
+camera   | 📹 CÂMERA DE VIGILÂNCIA - CIDADE INTELIGENTE
+camera   | ============================================
+camera   | Nome: Camera-Praca-Central
+camera   | Porta TCP: 7103
+camera   | ============================================
+camera   | 
+temperature-sensor  | ============================================
+temperature-sensor  | 🌡️  SENSOR DE TEMPERATURA - CIDADE INTELIGENTE
+temperature-sensor  | ============================================
+temperature-sensor  | Nome: Sensor-Temperatura-Praca-Central
+temperature-sensor  | Porta TCP: 7104
+temperature-sensor  | Intervalo: 5s
+temperature-sensor  | ============================================
+temperature-sensor  | 
+mysql               | '/var/lib/mysql/mysql.sock' -> '/var/run/mysqld/mysqld.sock'
+traffic-light       | ============================================
+traffic-light       | 🚦 SEMÁFORO - CIDADE INTELIGENTE
+traffic-light       | ============================================
+traffic-light       | Nome: Semaforo-Av-Principal
+traffic-light       | Porta TCP: 7102
+traffic-light       | ============================================
+traffic-light       | 
+client-web          | 
+client-web          | > smart-city-client@1.0.0 start
+client-web          | > node server.js
+client-web          | 
+mysql               | 2026-01-12T00:20:16.401332Z 0 [Warning] [MY-011068] [Server] The syntax '--skip-host-cache' is deprecated and will be removed in a future release. Please use SET GLOBAL host_cache_size=0 instead.
+mysql               | 2026-01-12T00:20:16.403205Z 0 [System] [MY-010116] [Server] /usr/sbin/mysqld (mysqld 8.0.44) starting as process 1
+client-web          | ╔═══════════════════════════════════════════════╗
+client-web          | ║   🏙️  Smart City - Cliente Web              ║
+client-web          | ╚═══════════════════════════════════════════════╝
+client-web          | ✓ Protocol Buffers carregado
+client-web          |   🌐 Interface Web: http://localhost:3000
+client-web          |   🔗 Gateway: gateway:7000
+client-web          |   ⚡ WebSocket ativo para atualizações em tempo real
+client-web          | ╚═══════════════════════════════════════════════╝
+client-web          | 
+mysql               | 2026-01-12T00:20:16.414537Z 1 [System] [MY-013576] [InnoDB] InnoDB initialization has started.
+mysql               | 2026-01-12T00:20:16.569418Z 1 [System] [MY-013577] [InnoDB] InnoDB initialization has ended.
+mysql               | 2026-01-12T00:20:16.751634Z 0 [Warning] [MY-010068] [Server] CA certificate ca.pem is self signed.
+mysql               | 2026-01-12T00:20:16.751689Z 0 [System] [MY-013602] [Server] Channel mysql_main configured to support TLS. Encrypted connections are now supported for this channel.
+mysql               | 2026-01-12T00:20:16.755586Z 0 [Warning] [MY-011810] [Server] Insecure configuration for --pid-file: Location '/var/run/mysqld' in the path is accessible to all OS users. Consider choosing a different directory.
+mysql               | 2026-01-12T00:20:16.783023Z 0 [System] [MY-011323] [Server] X Plugin ready for connections. Bind-address: '::' port: 33060, socket: /var/run/mysqld/mysqlx.sock
+mysql               | 2026-01-12T00:20:16.783080Z 0 [System] [MY-010931] [Server] /usr/sbin/mysqld: ready for connections. Version: '8.0.44'  socket: '/var/run/mysqld/mysqld.sock'  port: 3306  MySQL Community Server - GPL.
+gateway             | Starting Gateway...
+gateway             | [DISCOVERY] Aguardando respostas dos dispositivos na porta 5001...
+gateway             | [UDP] Escutando sensores na porta 6000
+gateway             | [GATEWAY] Loop ativo...
+gateway             | 
+gateway             | Fatal error: Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'last_seen' in 'field list' in /app/src/DeviceRegistry.php:69
+gateway             | Stack trace:
+gateway             | #0 /app/src/DeviceRegistry.php(69): PDO->query('SELECT id, name...')
+gateway             | #1 /app/src/Gateway.php(179): Gateway\DeviceRegistry->listDevices()
+gateway             | #2 /app/vendor/evenement/evenement/src/EventEmitterTrait.php(143): Gateway\Gateway->{closure:{closure:Gateway\Gateway::startTcpServer():174}:175}('LIST')
+gateway             | #3 /app/vendor/react/stream/src/Util.php(71): Evenement\EventEmitter->emit('data', Array)
+gateway             | #4 /app/vendor/evenement/evenement/src/EventEmitterTrait.php(143): React\Stream\Util::{closure:React\Stream\Util::forwardEvents():70}('LIST')
+gateway             | #5 /app/vendor/react/stream/src/DuplexResourceStream.php(209): Evenement\EventEmitter->emit('data', Array)
+gateway             | #6 /app/vendor/react/event-loop/src/StreamSelectLoop.php(246): React\Stream\DuplexResourceStream->handleData(Resource id #230)
+gateway             | #7 /app/vendor/react/event-loop/src/StreamSelectLoop.php(213): React\EventLoop\StreamSelectLoop->waitForStreamActivity(4813800)
+gateway             | #8 /app/src/Gateway.php(44): React\EventLoop\StreamSelectLoop->run()
+gateway             | #9 /app/run.php(14): Gateway\Gateway->start()
+gateway             | #10 {main}
+gateway             |   thrown in /app/src/DeviceRegistry.php on line 69
+[Kgateway exited with code 255 (restarting)
+gateway             | Starting Gateway...
+gateway             | [DISCOVERY] Aguardando respostas dos dispositivos na porta 5001...
+gateway             | [UDP] Escutando sensores na porta 6000
+gateway             | [GATEWAY] Loop ativo...
+gateway             | 
+gateway             | Fatal error: Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'last_seen' in 'field list' in /app/src/DeviceRegistry.php:69
+gateway             | Stack trace:
+gateway             | #0 /app/src/DeviceRegistry.php(69): PDO->query('SELECT id, name...')
+gateway             | #1 /app/src/Gateway.php(179): Gateway\DeviceRegistry->listDevices()
+gateway             | #2 /app/vendor/evenement/evenement/src/EventEmitterTrait.php(143): Gateway\Gateway->{closure:{closure:Gateway\Gateway::startTcpServer():174}:175}('LIST')
+gateway             | #3 /app/vendor/react/stream/src/Util.php(71): Evenement\EventEmitter->emit('data', Array)
+gateway             | #4 /app/vendor/evenement/evenement/src/EventEmitterTrait.php(143): React\Stream\Util::{closure:React\Stream\Util::forwardEvents():70}('LIST')
+gateway             | #5 /app/vendor/react/stream/src/DuplexResourceStream.php(209): Evenement\EventEmitter->emit('data', Array)
+gateway             | #6 /app/vendor/react/event-loop/src/StreamSelectLoop.php(246): React\Stream\DuplexResourceStream->handleData(Resource id #229)
+gateway             | #7 /app/vendor/react/event-loop/src/StreamSelectLoop.php(213): React\EventLoop\StreamSelectLoop->waitForStreamActivity(4060192)
+gateway             | #8 /app/src/Gateway.php(44): React\EventLoop\StreamSelectLoop->run()
+gateway             | #9 /app/run.php(14): Gateway\Gateway->start()
+gateway             | #10 {main}
+gateway             |   thrown in /app/src/DeviceRegistry.php on line 69
+[Kgateway exited with code 255 (restarting)
+gateway             | Starting Gateway...
+gateway             | [DISCOVERY] Aguardando respostas dos dispositivos na porta 5001...
+gateway             | [UDP] Escutando sensores na porta 6000
+gateway             | [GATEWAY] Loop ativo...
+gateway             | 
+gateway             | Fatal error: Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'last_seen' in 'field list' in /app/src/DeviceRegistry.php:69
+gateway             | Stack trace:
+gateway             | #0 /app/src/DeviceRegistry.php(69): PDO->query('SELECT id, name...')
+gateway             | #1 /app/src/Gateway.php(179): Gateway\DeviceRegistry->listDevices()
+gateway             | #2 /app/vendor/evenement/evenement/src/EventEmitterTrait.php(143): Gateway\Gateway->{closure:{closure:Gateway\Gateway::startTcpServer():174}:175}('LIST')
+gateway             | #3 /app/vendor/react/stream/src/Util.php(71): Evenement\EventEmitter->emit('data', Array)
+gateway             | #4 /app/vendor/evenement/evenement/src/EventEmitterTrait.php(143): React\Stream\Util::{closure:React\Stream\Util::forwardEvents():70}('LIST')
+gateway             | #5 /app/vendor/react/stream/src/DuplexResourceStream.php(209): Evenement\EventEmitter->emit('data', Array)
+gateway             | #6 /app/vendor/react/event-loop/src/StreamSelectLoop.php(246): React\Stream\DuplexResourceStream->handleData(Resource id #229)
+gateway             | #7 /app/vendor/react/event-loop/src/StreamSelectLoop.php(213): React\EventLoop\StreamSelectLoop->waitForStreamActivity(4528253)
+gateway             | #8 /app/src/Gateway.php(44): React\EventLoop\StreamSelectLoop->run()
+gateway             | #9 /app/run.php(14): Gateway\Gateway->start()
+gateway             | #10 {main}
+gateway             |   thrown in /app/src/DeviceRegistry.php on line 69
+[Kgateway exited with code 255 (restarting)
+gateway             | Starting Gateway...
+gateway             | [DISCOVERY] Aguardando respostas dos dispositivos na porta 5001...
+gateway             | [UDP] Escutando sensores na porta 6000
+gateway             | [GATEWAY] Loop ativo...
+gateway             | 
+gateway             | Fatal error: Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'last_seen' in 'field list' in /app/src/DeviceRegistry.php:69
+gateway             | Stack trace:
+gateway             | #0 /app/src/DeviceRegistry.php(69): PDO->query('SELECT id, name...')
+gateway             | #1 /app/src/Gateway.php(179): Gateway\DeviceRegistry->listDevices()
+gateway             | #2 /app/vendor/evenement/evenement/src/EventEmitterTrait.php(143): Gateway\Gateway->{closure:{closure:Gateway\Gateway::startTcpServer():174}:175}('LIST')
+gateway             | #3 /app/vendor/react/stream/src/Util.php(71): Evenement\EventEmitter->emit('data', Array)
+gateway             | #4 /app/vendor/evenement/evenement/src/EventEmitterTrait.php(143): React\Stream\Util::{closure:React\Stream\Util::forwardEvents():70}('LIST')
+gateway             | #5 /app/vendor/react/stream/src/DuplexResourceStream.php(209): Evenement\EventEmitter->emit('data', Array)
+gateway             | #6 /app/vendor/react/event-loop/src/StreamSelectLoop.php(246): React\Stream\DuplexResourceStream->handleData(Resource id #229)
+gateway             | #7 /app/vendor/react/event-loop/src/StreamSelectLoop.php(213): React\EventLoop\StreamSelectLoop->waitForStreamActivity(3520442)
+gateway             | #8 /app/src/Gateway.php(44): React\EventLoop\StreamSelectLoop->run()
+gateway             | #9 /app/run.php(14): Gateway\Gateway->start()
+gateway             | #10 {main}
+gateway             |   thrown in /app/src/DeviceRegistry.php on line 69
+[Kgateway exited with code 255 (restarting)
+gateway             | Starting Gateway...
+gateway             | [DISCOVERY] Aguardando respostas dos dispositivos na porta 5001...
+gateway             | [UDP] Escutando sensores na porta 6000
+gateway             | [GATEWAY] Loop ativo...
+gateway             | 
+gateway             | Fatal error: Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'last_seen' in 'field list' in /app/src/DeviceRegistry.php:69
+gateway             | Stack trace:
+gateway             | #0 /app/src/DeviceRegistry.php(69): PDO->query('SELECT id, name...')
+gateway             | #1 /app/src/Gateway.php(179): Gateway\DeviceRegistry->listDevices()
+gateway             | #2 /app/vendor/evenement/evenement/src/EventEmitterTrait.php(143): Gateway\Gateway->{closure:{closure:Gateway\Gateway::startTcpServer():174}:175}('LIST')
+gateway             | #3 /app/vendor/react/stream/src/Util.php(71): Evenement\EventEmitter->emit('data', Array)
+gateway             | #4 /app/vendor/evenement/evenement/src/EventEmitterTrait.php(143): React\Stream\Util::{closure:React\Stream\Util::forwardEvents():70}('LIST')
+gateway             | #5 /app/vendor/react/stream/src/DuplexResourceStream.php(209): Evenement\EventEmitter->emit('data', Array)
+gateway             | #6 /app/vendor/react/event-loop/src/StreamSelectLoop.php(246): React\Stream\DuplexResourceStream->handleData(Resource id #229)
+gateway             | #7 /app/vendor/react/event-loop/src/StreamSelectLoop.php(213): React\EventLoop\StreamSelectLoop->waitForStreamActivity(3031937)
+gateway             | #8 /app/src/Gateway.php(44): React\EventLoop\StreamSelectLoop->run()
+gateway             | #9 /app/run.php(14): Gateway\Gateway->start()
+gateway             | #10 {main}
+gateway             |   thrown in /app/src/DeviceRegistry.php on line 69
+[Kgateway exited with code 255 (restarting)
+gateway             | Starting Gateway...
+gateway             | [DISCOVERY] Aguardando respostas dos dispositivos na porta 5001...
+gateway             | [UDP] Escutando sensores na porta 6000
+gateway             | [GATEWAY] Loop ativo...
+gateway             | 
+gateway             | Fatal error: Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'last_seen' in 'field list' in /app/src/DeviceRegistry.php:69
+gateway             | Stack trace:
+gateway             | #0 /app/src/DeviceRegistry.php(69): PDO->query('SELECT id, name...')
+gateway             | #1 /app/src/Gateway.php(179): Gateway\DeviceRegistry->listDevices()
+gateway             | #2 /app/vendor/evenement/evenement/src/EventEmitterTrait.php(143): Gateway\Gateway->{closure:{closure:Gateway\Gateway::startTcpServer():174}:175}('LIST')
+gateway             | #3 /app/vendor/react/stream/src/Util.php(71): Evenement\EventEmitter->emit('data', Array)
+gateway             | #4 /app/vendor/evenement/evenement/src/EventEmitterTrait.php(143): React\Stream\Util::{closure:React\Stream\Util::forwardEvents():70}('LIST')
+gateway             | #5 /app/vendor/react/stream/src/DuplexResourceStream.php(209): Evenement\EventEmitter->emit('data', Array)
+gateway             | #6 /app/vendor/react/event-loop/src/StreamSelectLoop.php(246): React\Stream\DuplexResourceStream->handleData(Resource id #229)
+gateway             | #7 /app/vendor/react/event-loop/src/StreamSelectLoop.php(213): React\EventLoop\StreamSelectLoop->waitForStreamActivity(3837127)
+gateway             | #8 /app/src/Gateway.php(44): React\EventLoop\StreamSelectLoop->run()
+gateway             | #9 /app/run.php(14): Gateway\Gateway->start()
+gateway             | #10 {main}
+gateway             |   thrown in /app/src/DeviceRegistry.php on line 69
+[Kgateway exited with code 255 (restarting)
+client-web          | Erro ao listar dispositivos: getaddrinfo ENOTFOUND gateway
+gateway             | Starting Gateway...
+gateway             | [DISCOVERY] Aguardando respostas dos dispositivos na porta 5001...
+gateway             | [UDP] Escutando sensores na porta 6000
+gateway             | [GATEWAY] Loop ativo...
+gateway             | 
+gateway             | Fatal error: Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'last_seen' in 'field list' in /app/src/DeviceRegistry.php:69
+gateway             | Stack trace:
+gateway             | #0 /app/src/DeviceRegistry.php(69): PDO->query('SELECT id, name...')
+gateway             | #1 /app/src/Gateway.php(179): Gateway\DeviceRegistry->listDevices()
+gateway             | #2 /app/vendor/evenement/evenement/src/EventEmitterTrait.php(143): Gateway\Gateway->{closure:{closure:Gateway\Gateway::startTcpServer():174}:175}('LIST')
+gateway             | #3 /app/vendor/react/stream/src/Util.php(71): Evenement\EventEmitter->emit('data', Array)
+gateway             | #4 /app/vendor/evenement/evenement/src/EventEmitterTrait.php(143): React\Stream\Util::{closure:React\Stream\Util::forwardEvents():70}('LIST')
+gateway             | #5 /app/vendor/react/stream/src/DuplexResourceStream.php(209): Evenement\EventEmitter->emit('data', Array)
+gateway             | #6 /app/vendor/react/event-loop/src/StreamSelectLoop.php(246): React\Stream\DuplexResourceStream->handleData(Resource id #229)
+gateway             | #7 /app/vendor/react/event-loop/src/StreamSelectLoop.php(213): React\EventLoop\StreamSelectLoop->waitForStreamActivity(2432909)
+gateway             | #8 /app/src/Gateway.php(44): React\EventLoop\StreamSelectLoop->run()
+gateway             | #9 /app/run.php(14): Gateway\Gateway->start()
+gateway             | #10 {main}
+gateway             |   thrown in /app/src/DeviceRegistry.php on line 69
+[Kgateway exited with code 255 (restarting)
+client-web          | Erro ao listar dispositivos: getaddrinfo ENOTFOUND gateway
+client-web          | Erro ao listar dispositivos: getaddrinfo ENOTFOUND gateway
+gateway             | Starting Gateway...
+gateway             | [DISCOVERY] Aguardando respostas dos dispositivos na porta 5001...
+gateway             | [UDP] Escutando sensores na porta 6000
+gateway             | [GATEWAY] Loop ativo...
+gateway             | 
+gateway             | Fatal error: Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'last_seen' in 'field list' in /app/src/DeviceRegistry.php:69
+gateway             | Stack trace:
+gateway             | #0 /app/src/DeviceRegistry.php(69): PDO->query('SELECT id, name...')
+gateway             | #1 /app/src/Gateway.php(179): Gateway\DeviceRegistry->listDevices()
+gateway             | #2 /app/vendor/evenement/evenement/src/EventEmitterTrait.php(143): Gateway\Gateway->{closure:{closure:Gateway\Gateway::startTcpServer():174}:175}('LIST')
+gateway             | #3 /app/vendor/react/stream/src/Util.php(71): Evenement\EventEmitter->emit('data', Array)
+gateway             | #4 /app/vendor/evenement/evenement/src/EventEmitterTrait.php(143): React\Stream\Util::{closure:React\Stream\Util::forwardEvents():70}('LIST')
+gateway             | #5 /app/vendor/react/stream/src/DuplexResourceStream.php(209): Evenement\EventEmitter->emit('data', Array)
+gateway             | #6 /app/vendor/react/event-loop/src/StreamSelectLoop.php(246): React\Stream\DuplexResourceStream->handleData(Resource id #229)
+gateway             | #7 /app/vendor/react/event-loop/src/StreamSelectLoop.php(213): React\EventLoop\StreamSelectLoop->waitForStreamActivity(2641967)
+gateway             | #8 /app/src/Gateway.php(44): React\EventLoop\StreamSelectLoop->run()
+gateway             | #9 /app/run.php(14): Gateway\Gateway->start()
+gateway             | #10 {main}
+gateway             |   thrown in /app/src/DeviceRegistry.php on line 69
+[Kgateway exited with code 255 (restarting)
+client-web          | Erro ao listar dispositivos: getaddrinfo ENOTFOUND gateway
+client-web          | Erro ao listar dispositivos: getaddrinfo ENOTFOUND gateway
+client-web          | Erro ao listar dispositivos: getaddrinfo ENOTFOUND gateway
+client-web          | Erro ao listar dispositivos: getaddrinfo ENOTFOUND gateway
+gateway             | Starting Gateway...
+gateway             | [DISCOVERY] Aguardando respostas dos dispositivos na porta 5001...
+gateway             | [UDP] Escutando sensores na porta 6000
+gateway             | [GATEWAY] Loop ativo...
+gateway             | 
+gateway             | Fatal error: Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'last_seen' in 'field list' in /app/src/DeviceRegistry.php:69
+gateway             | Stack trace:
+gateway             | #0 /app/src/DeviceRegistry.php(69): PDO->query('SELECT id, name...')
+gateway             | #1 /app/src/Gateway.php(179): Gateway\DeviceRegistry->listDevices()
+gateway             | #2 /app/vendor/evenement/evenement/src/EventEmitterTrait.php(143): Gateway\Gateway->{closure:{closure:Gateway\Gateway::startTcpServer():174}:175}('LIST')
+gateway             | #3 /app/vendor/react/stream/src/Util.php(71): Evenement\EventEmitter->emit('data', Array)
+gateway             | #4 /app/vendor/evenement/evenement/src/EventEmitterTrait.php(143): React\Stream\Util::{closure:React\Stream\Util::forwardEvents():70}('LIST')
+gateway             | #5 /app/vendor/react/stream/src/DuplexResourceStream.php(209): Evenement\EventEmitter->emit('data', Array)
+gateway             | #6 /app/vendor/react/event-loop/src/StreamSelectLoop.php(246): React\Stream\DuplexResourceStream->handleData(Resource id #229)
+gateway             | #7 /app/vendor/react/event-loop/src/StreamSelectLoop.php(213): React\EventLoop\StreamSelectLoop->waitForStreamActivity(3041622)
+gateway             | #8 /app/src/Gateway.php(44): React\EventLoop\StreamSelectLoop->run()
+gateway             | #9 /app/run.php(14): Gateway\Gateway->start()
+gateway             | #10 {main}
+gateway             |   thrown in /app/src/DeviceRegistry.php on line 69
+[Kgateway exited with code 255 (restarting)
+client-web          | Erro ao listar dispositivos: getaddrinfo ENOTFOUND gateway
+client-web          | Erro ao listar dispositivos: getaddrinfo ENOTFOUND gateway
+client-web          | Erro ao listar dispositivos: getaddrinfo ENOTFOUND gateway
+client-web          | Erro ao listar dispositivos: getaddrinfo ENOTFOUND gateway
+client-web          | Erro ao listar dispositivos: getaddrinfo ENOTFOUND gateway
+client-web          | Erro ao listar dispositivos: getaddrinfo ENOTFOUND gateway
+client-web          | Erro ao listar dispositivos: getaddrinfo ENOTFOUND gateway
+client-web          | Erro ao listar dispositivos: getaddrinfo ENOTFOUND gateway
+gateway             | Starting Gateway...
+gateway             | [DISCOVERY] Aguardando respostas dos dispositivos na porta 5001...
+gateway             | [UDP] Escutando sensores na porta 6000
+gateway             | [GATEWAY] Loop ativo...
+gateway             | 
+gateway             | Fatal error: Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'last_seen' in 'field list' in /app/src/DeviceRegistry.php:69
+gateway             | Stack trace:
+gateway             | #0 /app/src/DeviceRegistry.php(69): PDO->query('SELECT id, name...')
+gateway             | #1 /app/src/Gateway.php(179): Gateway\DeviceRegistry->listDevices()
+gateway             | #2 /app/vendor/evenement/evenement/src/EventEmitterTrait.php(143): Gateway\Gateway->{closure:{closure:Gateway\Gateway::startTcpServer():174}:175}('LIST')
+gateway             | #3 /app/vendor/react/stream/src/Util.php(71): Evenement\EventEmitter->emit('data', Array)
+gateway             | #4 /app/vendor/evenement/evenement/src/EventEmitterTrait.php(143): React\Stream\Util::{closure:React\Stream\Util::forwardEvents():70}('LIST')
+gateway             | #5 /app/vendor/react/stream/src/DuplexResourceStream.php(209): Evenement\EventEmitter->emit('data', Array)
+gateway             | #6 /app/vendor/react/event-loop/src/StreamSelectLoop.php(246): React\Stream\DuplexResourceStream->handleData(Resource id #229)
+gateway             | #7 /app/vendor/react/event-loop/src/StreamSelectLoop.php(213): React\EventLoop\StreamSelectLoop->waitForStreamActivity(3829619)
+gateway             | #8 /app/src/Gateway.php(44): React\EventLoop\StreamSelectLoop->run()
+gateway             | #9 /app/run.php(14): Gateway\Gateway->start()
+gateway             | #10 {main}
+gateway             |   thrown in /app/src/DeviceRegistry.php on line 69
+[Kgateway exited with code 255 (restarting)
+client-web          | Erro ao listar dispositivos: getaddrinfo ENOTFOUND gateway
+client-web          | Erro ao listar dispositivos: getaddrinfo ENOTFOUND gateway
+client-web          | Erro ao listar dispositivos: getaddrinfo ENOTFOUND gateway
+client-web          | Erro ao listar dispositivos: getaddrinfo ENOTFOUND gateway
+client-web          | Erro ao listar dispositivos: getaddrinfo ENOTFOUND gateway
+client-web          | Erro ao listar dispositivos: getaddrinfo ENOTFOUND gateway
+client-web          | Erro ao listar dispositivos: getaddrinfo ENOTFOUND gateway
+client-web          | Erro ao listar dispositivos: getaddrinfo ENOTFOUND gateway
+client-web          | Erro ao listar dispositivos: getaddrinfo ENOTFOUND gateway
+client-web          | Erro ao listar dispositivos: getaddrinfo ENOTFOUND gateway
+client-web          | Erro ao listar dispositivos: getaddrinfo ENOTFOUND gateway
+client-web          | Erro ao listar dispositivos: getaddrinfo ENOTFOUND gateway
+Gracefully Stopping... press Ctrl+C again to force
+ Container traffic-light  Stopping
+ Container camera  Stopping
+ Container client-web  Stopping
+ Container temperature-sensor  Stopping
+ Container client-web  Stopped
+ Container traffic-light  Stopped
+ Container temperature-sensor  Stopped
+ Container camera  Stopped
+ Container gateway  Stopping
+ Container gateway  Stopped
+ Container mysql  Stopping
+ Container minio  Stopping
+ Container minio  Stopped
+ Container mysql  Stopped
+

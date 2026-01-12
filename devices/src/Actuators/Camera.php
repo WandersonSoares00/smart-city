@@ -72,6 +72,10 @@ class Camera extends BaseDevice
                     'state' => $this->currentState,
                 ]);
                 return $this->createResponse(true, $status);
+            
+            case 'TAKE_SNAPSHOT':
+                $snapshotUrl = "https://picsum.photos/200/300?random=" . mt_rand(1, 1000);
+                return $this->createResponse(true, "{$snapshotUrl}");
 
             default:
                 return $this->createResponse(false, "Comando desconhecido");
