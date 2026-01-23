@@ -79,8 +79,8 @@ services:
       RABBITMQ_DEFAULT_PASS: admin123
 
       AWS_REGION: us-east-1
-      AWS_ACCESS_KEY_ID: AKIASYEIWMMMY3HXQYUY
-      AWS_SECRET_ACCESS_KEY: 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
+      AWS_ACCESS_KEY_ID: access_key
+      AWS_SECRET_ACCESS_KEY: secret
       DYNAMODB_TABLE: device_actions
     ports:
       - "7000:7000"
@@ -121,20 +121,6 @@ services:
       <<: *device-env
       DEVICE_TCP_PORT: 7102
     <<: *device-base
-
-#  client-web:
-#    build: ./client-web
-#    container_name: client-web
-#    environment:
-#      PORT: 3000
-#      GATEWAY_HOST: gateway
-#      GATEWAY_PORT: 7000
-#    ports:
-#      - "3000:3000"
-#    depends_on:
-#      - gateway
-#    networks:
-#      - smartcity
 
   client:
     build: ./client-web

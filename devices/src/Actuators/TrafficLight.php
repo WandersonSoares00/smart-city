@@ -64,12 +64,6 @@ class TrafficLight extends BaseDevice
 
         switch ($action) {
             case 'SET_LIGHT':
-                if ($this->mode !== 'MANUAL') {
-                    return $this->createResponse(false, "Modo MANUAL necessário");
-                }
-                if (!in_array($value, ['RED', 'YELLOW', 'GREEN'])) {
-                    return $this->createResponse(false, "Cor inválida");
-                }
                 $this->currentLight = $value;
                 $this->currentState = $value;
                 return $this->createResponse(true, "Luz: {$value}");
@@ -79,6 +73,7 @@ class TrafficLight extends BaseDevice
                 if ($this->mode === 'AUTO') {
                     $this->startAutoCycle();
                 }
+                $this->currentState = $this->currentLight;
                 return $this->createResponse(true, "Modo: {$this->mode}");
 
             case 'SET_TIME':

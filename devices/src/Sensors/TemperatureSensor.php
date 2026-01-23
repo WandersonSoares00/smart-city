@@ -19,6 +19,8 @@ class TemperatureSensor extends BaseSensor
     private float $currentTemp;
     private float $baseTemp;
 
+    protected string $currentState;
+
     public function __construct(string $name, int $port, float $interval = 15.0)
     {
         parent::__construct($name, 'TEMPERATURE_SENSOR', $port, $interval);
@@ -40,7 +42,7 @@ class TemperatureSensor extends BaseSensor
             ? ($temp * 9/5) + 32 
             : $temp;
         
-        $formattedValue = sprintf("%.1f%s", $value, $this->unit === 'CELSIUS' ? '°C' : '°F');
+        $formattedValue = sprintf("%.1f %s", $value, $this->unit === 'CELSIUS' ? '°C' : '°F');
         
         return [
             'type' => 'temperature',
@@ -56,9 +58,6 @@ class TemperatureSensor extends BaseSensor
         switch ($action) {
             case 'SET_INTERVAL':
                 $interval = (float) $value;
-                if ($interval < 1 || $interval > 3600) {
-                    return $this->createResponse(false, "Intervalo inválido");
-                }
                 return $this->createResponse(true, "Intervalo: {$interval}s");
 
             case 'SET_UNIT':
@@ -80,6 +79,7 @@ class TemperatureSensor extends BaseSensor
                     'unit' => $this->unit,
                     'interval' => $this->sendInterval,
                 ]);
+                $this->currentState = "{$reading['value']} ";
                 return $this->createResponse(true, $status);
 
             default:

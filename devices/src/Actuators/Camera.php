@@ -30,6 +30,8 @@ class Camera extends BaseDevice
         $action = strtoupper($cmd->getAction());
         $value = $cmd->getValue();
 
+        echo "[{$this->name}] Comando recebido: {$action} " . ($value !== null ? "com valor '{$value}'" : "") . "\n";
+        
         switch ($action) {
             case 'TURN_ON':
                 $this->isRecording = true;
