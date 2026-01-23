@@ -7,6 +7,7 @@ use PDO;
 class DeviceRegistry
 {
     private PDO $db;
+    private array $cache = [];
 
     public function __construct()
     {
@@ -31,11 +32,32 @@ class DeviceRegistry
             $device->port,
             $device->currentState
         ]);
+
+        $this->cache[$device->name] = $device;
+        echo "[REGISTRY] Dispositivo '{$device->name} ip:{$device->ip} port:{$device->port}' adicionado/atualizado no registro.\n";
+    }
+
+    public function getAddr(string $name): ?string
+    {
+        if (isset($this->cache[$name])) {
+            $device = $this->cache[$name];
+            return "{$device->ip}:{$device->port}";
+        }
+
+        return null;
     }
 
     public function getDevice(string $name): ?Device
     {
-        $stmt = $this->db->prepare("SELECT * FROM devices WHERE name = ?");
+        if (isset($this->cache[$name])) {
+            echo "[REGISTRY] Dispositivo '{$name} ip:{$this->cache[$name]->ip}' obtido do cache.\n";
+            return $this->cache[$name];
+        }
+
+        $stmt = $this->db->prepare("SELECT * FROM devices
+                                            WHERE name = ?
+                                            ORDER BY id DESC 
+                                            LIMIT 1");
         $stmt->execute([$name]);
 
         $data = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -55,12 +77,11 @@ class DeviceRegistry
         $device->current_state = $data['current_state'];
         $device->state_value  = $data['state_value'];
 
+        $this->cache[$name] = $device;
+
         return $device;
     }
 
-    /**
-     * Atualiza estado atual do dispositivo (sensor ou atuador)
-     */
     public function updateSensorData(string $deviceName, string $state, string $value): void
     {
         $stmt = $this->db->prepare("
@@ -70,6 +91,11 @@ class DeviceRegistry
         ");
 
         $stmt->execute([$state, $value, $deviceName]);
+
+        if (isset($this->cache[$deviceName])) {
+            $this->cache[$deviceName]->current_state = $state;
+            $this->cache[$deviceName]->state_value = $value;
+        }
     }
 
     public function listDevices(): array

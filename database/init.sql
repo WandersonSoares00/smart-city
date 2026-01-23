@@ -21,3 +21,5 @@ CREATE TABLE devices (
 ---   FOREIGN KEY (device_id) REFERENCES devices(id)
 --- );
 --- 
+
+ALTER TABLE devices ADD UNIQUE INDEX unique_name (name);

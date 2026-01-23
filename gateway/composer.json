@@ -5,7 +5,8 @@
         "react/socket": "^1.17",
         "react/datagram": "^1.10",
         "google/protobuf": "^4.33",
-        "aws/aws-sdk-php": "^3.369"
+        "aws/aws-sdk-php": "^3.369",
+        "php-amqplib/php-amqplib": "^3.7"
     },
     "require-dev": {
         "phpunit/phpunit": "^9.5"

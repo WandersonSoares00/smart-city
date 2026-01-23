@@ -56,7 +56,8 @@ abstract class BaseDevice
      */
     protected function getLocalIp(): string
     {
-        return $_ENV['LOCAL_IP'] ?? gethostbyname(gethostname()) ?? '127.0.0.1';
+        $ip = $_ENV['LOCAL_IP'] ?? gethostbyname(gethostname()) ?? '127.0.0.1';
+        return $ip;
     }
 
     /**
@@ -92,6 +93,20 @@ abstract class BaseDevice
 
         $this->registred = true;
 
+        $this->loop->addPeriodicTimer(10.0, function () {
+            $gatewayHost = $_ENV['GATEWAY_HOST'] ?? 'gateway';
+            $port = $_ENV['GATEWAY_TCP_PORT'] ?? 7100;
+            
+            $conn = @fsockopen($gatewayHost, $port);
+            
+            if ($conn) {
+                fclose($conn);
+            } else {
+                echo "[WATCHDOG] Gateway off. Reiniciando...\n";
+                exit(1);
+            }
+        });
+
         // Envia heartbeat a cada 10 segundos para manter o dispositivo ativo
         //$this->loop->addPeriodicTimer(10, function () {
         //    $this->sendDeviceInfo();
@@ -103,6 +118,7 @@ abstract class BaseDevice
      */
     protected function sendDeviceInfo(): void
     {
+        sleep(10);
         $info = new DeviceInfo();
         $info->setName($this->name);
         $info->setType($this->type);
@@ -111,7 +127,7 @@ abstract class BaseDevice
         $info->setCurrentState($this->currentState);
 
         $binary = $info->serializeToString();
-        // Envia resposta diretamente para o gateway (localhost em desenvolvimento)
+        // Envia resposta diretamente para o gateway
         $gatewayHost = $_ENV['GATEWAY_HOST'] ?? '127.0.0.1';
         $address = "{$gatewayHost}:{$this->gatewayDiscoveryPort}";
 
@@ -132,7 +148,8 @@ abstract class BaseDevice
         $server->on('connection', function ($conn) {
             $conn->on('data', function ($data) use ($conn) {
                 $cmd = new Command();
-                
+                echo "comando recebido\n";
+
                 try {
                     $cmd->mergeFromString($data);
                 } catch (\Exception $e) {
@@ -140,6 +157,9 @@ abstract class BaseDevice
                     return;
                 }
                 $response = $this->handleCommand($cmd);
+
+                echo $response->getMessage() . "\n\n";
+
                 $conn->write($response->serializeToString());
                 
                 $data = new SensorData();
@@ -175,6 +195,7 @@ abstract class BaseDevice
         $response->setDeviceName($this->name);
         $response->setSuccess($success);
         $response->setMessage($message);
+        $response->setState($this->currentState);
         return $response;
     }
 }

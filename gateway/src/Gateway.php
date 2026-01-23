@@ -35,6 +35,10 @@ class Gateway
 
         $this->startPeriodicDiscovery();
         $this->startDiscoveryResponseListener();
+
+        $consumer = new SensorConsumer();
+        $consumer->start($this->deviceRegistry, $this->loop);
+
         $this->startSensorUdpListener();
         $this->startTcpServer();
         //$this->startInactiveDeviceCleanup();
@@ -77,7 +81,11 @@ class Gateway
             $server->on('message', function ($msg, $addr) {
 
                 echo "[DISCOVERY] Resposta recebida de $addr - $msg \n";
+                
+                $realIp = trim(parse_url("tcp://$addr", PHP_URL_HOST));
 
+                echo "[DISCOVERY] Pacote recebido de $addr (IP Real: $realIp)\n";
+                
                 if ($msg === "DISCOVERY") {
                     return;
                 }
@@ -120,29 +128,100 @@ class Gateway
                     $info = new SensorData();
                     $info->mergeFromString($msg);
                     
-                    $this->deviceRegistry->updateSensorData($info->getDeviceName(), $info->getType(), $info->getValue());
+                    $this->deviceRegistry->updateSensorData($info->getDeviceName(), $info->getValue(), $info->getValue());
                 } catch (\Exception $e) {
                     echo "[ERROR] Falha ao processar mensagem UDP: " . $e->getMessage() . "\n";
                 }
             });
         });
     }
-
-    private function sendCommandToDevice(Device $device, Command $cmd, callable $onResponse): void {
+    
+    /*
+    private function sendCommandToDevice(string $deviceAddr, Command $cmd, callable $onResponse): void {
         
-        $connector = new Connector($this->loop);
-        $address = "{$device->ip}:{$device->port}";
+        $address = "tcp://{$deviceAddr}";
 
+        echo "\n--- DEBUG START ---\n";
+        echo "Tentando conectar em: [{$address}]\n"; // Os colchetes mostram se tem espaço escondido
+        
+        // 2. Tenta conectar SEM o @ para ver warnings no console e com timeout explícito
+        // Timeout de 3 segundos para teste
+        $socket = stream_socket_client($address);
+
+        // Se chegou aqui, escreve
+        fwrite($socket, $cmd->serializeToString());
+        echo "Dado escrito no socket.\n";
+        
+        // ... resto do código de leitura ...
+        fclose($socket);
+    }
+    */
+
+    /*
+    private function sendCommandToDevice(string $deviceAddr, Command $cmd, callable $onResponse): void {
+        
+        
+        //$connector = new Connector($this->loop);
+        $address = "{$device->ip}:{$device->port}";
+        echo "Connecting to $address\n";
+
+        $socket = @stream_socket_client("tcp://{$address}", $errno, $errstr);
+
+        if (!$socket) {
+            $resp = new CommandResponse();
+            $resp->setDeviceName($device->name);
+            $resp->setSuccess(false);
+            $resp->setMessage("Falha ao conectar ao dispositivo: $errstr ($errno).");
+
+            $onResponse($resp);
+            return;
+        }
+
+        fwrite($socket, $cmd->serializeToString());
+
+        $data = "";
+        stream_set_timeout($socket, 5);
+
+        while (!feof($socket)) {
+            $chunk = fread($socket, 8192);
+            if ($chunk === false || $chunk === "") {
+                break;
+            }
+            $data .= $chunk;
+        }
+
+        fclose($socket);
+
+        $resp = new CommandResponse();
+        
+        try {
+            $resp->mergeFromString($data);
+            echo "Response decoded: " . $resp . "\n";
+        } catch (\Exception $e) {
+            $onResponse("Erro ao decodificar resposta do dispositivo");
+            return;
+        }
+
+        $onResponse($resp);
+
+        echo "Sent command to device\n";
+
+        return; 
+        $connector = new Connector($this->loop);
+        $address = "tcp://{$deviceAddr}";
+        
         $connector->connect($address)->then(
             function (ConnectionInterface $deviceConn) use ($cmd, $onResponse) {
-
+                echo "Connected " . $cmd . "\n";
+                
                 $deviceConn->write($cmd->serializeToString());
 
                 $deviceConn->on('data', function ($data) use ($onResponse) {
-
+                    echo "Response received: " . strlen($data) . " bytes\n";
                     $resp = new CommandResponse();
                     try {
                         $resp->mergeFromString($data);
+                        echo "Response decoded: " . $resp . "\n";
                     } catch (\Exception $e) {
                         $onResponse("Erro ao decodificar resposta do dispositivo");
                         return;
@@ -151,13 +230,64 @@ class Gateway
                     $onResponse($resp);
                 });
             },
-            function () use ($device, $onResponse) {
+            function () use (CommandResponse $resp, $onResponse) {
+                $onResponse($resp);
+            }
+        );
+    }   */
 
+    private function sendCommandToDevice(string $deviceAddr, Command $cmd, callable $onResponse): void 
+    {
+        $connector = new Connector(['timeout' => 3.0], $this->loop);
+        $address = "tcp://{$deviceAddr}";
+
+        echo "[ASYNC] Connecting to $address\n";
+
+        $connector->connect($address)->then(
+            function (ConnectionInterface $conn) use ($cmd, $onResponse) {
+                
+                $conn->write($cmd->serializeToString());
+
+                $buffer = '';
+
+                $timer = $this->loop->addTimer(5.0, function () use ($conn) {
+                    echo "[TIMEOUT] Fechando conexão por inatividade.\n";
+                    $conn->close();
+                });
+
+                $conn->on('data', function ($chunk) use (&$buffer) {
+                    $buffer .= $chunk;
+                });
+
+                $conn->on('close', function () use (&$buffer, $onResponse, $timer, $cmd) {
+                    $this->loop->cancelTimer($timer);
+
+                    $resp = new CommandResponse();
+                    
+                    try {
+                        if (empty($buffer)) {
+                            throw new \Exception("Conexão fechada sem dados.");
+                        }
+
+                        $resp->mergeFromString($buffer);
+                        echo "[ASYNC] Response decoded: Success\n";
+                        $onResponse($resp);
+
+                    } catch (\Exception $e) {
+                        $errResp = new CommandResponse();
+                        $errResp->setDeviceName($cmd->getDeviceName());
+                        $errResp->setSuccess(false);
+                        $errResp->setMessage("Erro ao ler resposta: " . $e->getMessage());
+                        $onResponse($errResp);
+                    }
+                });
+            },
+            function (\Exception $e) use ($cmd, $onResponse) {
                 $resp = new CommandResponse();
-                $resp->setDeviceName($device->name);
+                $resp->setDeviceName($cmd->getDeviceName());
                 $resp->setSuccess(false);
-                $resp->setMessage("Falha ao conectar ao dispositivo.");
-
+                $resp->setMessage("Falha ao conectar (Async): " . $e->getMessage());
+                
                 $onResponse($resp);
             }
         );
@@ -197,9 +327,8 @@ class Gateway
                     $action = $parts[2];
                     $value = $parts[3] ?? "";
 
-                    $device = $this->deviceRegistry->getDevice($deviceName);
-
-                    if (!$device) {
+                    $deviceAddr = $this->deviceRegistry->getAddr($deviceName);
+                    if (!$deviceAddr) {
                         $conn->write("ERROR: device '$deviceName' not found.\n");
                         return;
                     }
@@ -208,15 +337,23 @@ class Gateway
                     $command->setDeviceName($deviceName);
                     $command->setAction($action);
                     $command->setValue($value);
+                    echo "[COMMAND] Enviando comando para {$deviceName}: {$action} {$value}\n";
 
-                    $this->sendCommandToDevice($device, $command, function (CommandResponse $resp) use ($action, $conn) {
+                    $this->sendCommandToDevice($deviceAddr, $command, function (CommandResponse $resp) use ($action, $conn) {
+                        echo $resp->getSuccess() ? "[COMMAND] Comando executado com sucesso em {$resp->getDeviceName()}\n" : "[COMMAND] Falha ao executar comando em {$resp->getDeviceName()}: {$resp->getMessage()}\n";
+
                         $conn->write(json_encode([
                             "device"  => $resp->getDeviceName(),
                             "success" => $resp->getSuccess(),
-                            "message" => $resp->getMessage()
+                            "message" => $resp->getMessage(),
+                            "state"   => $resp->getState()
                         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . "\n");
 
-                        if ($action === "TAKE_SNAPSHOT") {
+                        echo "[COMMAND] Resposta enviada ao cliente.\n";
+
+                        if ($action === "TAKE_SNAPSHOT" && $resp->getSuccess()) {
+                            echo "[SNAPSHOT] Processando imagem da câmera...\n";
+
                             $url = $resp->getMessage();
 
                             try {
@@ -240,7 +377,7 @@ class Gateway
                         }
                     
                     });
-                    
+
                     try {
                         $dynamo->logCommand([
                             'device'    => $deviceName,
@@ -276,11 +413,13 @@ class Gateway
                     $command->setAction("SET_LIGHT");
                     $command->setValue($color);
 
+                    
                     $this->sendCommandToDevice($device, $command, function (CommandResponse $resp) use ($conn) {
                         $conn->write(json_encode([
                             "device"  => $resp->getDeviceName(),
                             "success" => $resp->getSuccess(),
-                            "message" => $resp->getMessage()
+                            "message" => $resp->getMessage(),
+                            "state"   => $resp->getState()
                         ]) . "\n");
                     });
                     

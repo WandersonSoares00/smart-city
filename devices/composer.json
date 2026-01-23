@@ -8,7 +8,9 @@
         "react/event-loop": "^1.6",
         "react/socket": "^1.17",
         "react/datagram": "^1.10",
-        "google/protobuf": "^4.33"
+        "google/protobuf": "^4.33",
+        "grpc/grpc": "^1.74",
+        "php-amqplib/php-amqplib": "^3.7"
     },
     "autoload": {
         "psr-4": {

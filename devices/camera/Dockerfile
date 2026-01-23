@@ -15,6 +15,8 @@ COPY composer.json composer.lock ./
 COPY src ./src
 COPY camera/run.php ./run.php
 
+RUN docker-php-ext-install sockets
+
 RUN composer install --no-dev --optimize-autoloader
 
 CMD ["php", "run.php", "Camera-Praca-Central", "7103"]

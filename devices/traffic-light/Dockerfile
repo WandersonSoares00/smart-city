@@ -15,6 +15,8 @@ COPY composer.json composer.lock ./
 COPY src ./src
 COPY traffic-light/run.php ./run.php
 
+RUN docker-php-ext-install sockets
+
 RUN composer install --no-dev --optimize-autoloader
 
 CMD ["php", "run.php", "Semaforo-Av-Principal", "7102"]

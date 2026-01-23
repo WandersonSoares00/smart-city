@@ -24,6 +24,7 @@ message CommandResponse {
   string deviceName = 1;
   bool success = 2;
   string message = 3;
+  string state = 4;
 }
 
 message DeviceList {
