@@ -16,7 +16,7 @@ class Messages
         }
         $pool->internalAddGeneratedFile(
             '
-í
+ü
 protobuf/messages.proto"X
 
 DeviceInfo
@@ -36,12 +36,13 @@ deviceName (	
 
 deviceName (	
 action (	
-value (	"G
+value (	"V
 CommandResponse
 
 deviceName (	
 success (
-message (	"*
+message (	
+state (	"*
 
 DeviceList
 devices (2.DeviceInfobproto3'

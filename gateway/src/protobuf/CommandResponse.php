@@ -23,6 +23,10 @@ class CommandResponse extends \Google\Protobuf\Internal\Message
      * Generated from protobuf field <code>string message = 3;</code>
      */
     protected $message = '';
+    /**
+     * Generated from protobuf field <code>string state = 4;</code>
+     */
+    protected $state = '';
 
     /**
      * Constructor.
@@ -33,6 +37,7 @@ class CommandResponse extends \Google\Protobuf\Internal\Message
      *     @type string $deviceName
      *     @type bool $success
      *     @type string $message
+     *     @type string $state
      * }
      */
     public function __construct($data = NULL) {
@@ -102,6 +107,28 @@ class CommandResponse extends \Google\Protobuf\Internal\Message
     {
         GPBUtil::checkString($var, True);
         $this->message = $var;
+
+        return $this;
+    }
+
+    /**
+     * Generated from protobuf field <code>string state = 4;</code>
+     * @return string
+     */
+    public function getState()
+    {
+        return $this->state;
+    }
+
+    /**
+     * Generated from protobuf field <code>string state = 4;</code>
+     * @param string $var
+     * @return $this
+     */
+    public function setState($var)
+    {
+        GPBUtil::checkString($var, True);
+        $this->state = $var;
 
         return $this;
     }
